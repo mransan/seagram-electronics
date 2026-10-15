@@ -1,8 +1,10 @@
-# Vim swap and temporary files
-[._]*.s[a-v][a-z]
+# Vim swap, backup, and undo files
 [._]*.sw[a-p]
-[._]s[a-v][a-z]
-[._]sw[a-p]
+[._]*.swo
+[._]*.swp
+*.sw[a-p]
+*.swp
+*.swo
 *~
 *.un~
 .netrwhist
