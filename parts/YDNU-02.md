@@ -14,10 +14,9 @@
   special drivers on modern operational systems.
 
 # Integration with other devices
-This section details how the YDNU-02 links with external platforms. It
-operates as a local serial device using a physical connection. It has a
-structural dependency on the master host system for power and driver
-communication.
+This section details how the YDNU-02 links with external platforms. It operates
+as a local serial device using a physical connection. It has a structural
+dependency on the master host system for power and driver communication.
 
 ## Tablet / Phones
 * **Connectivity:** Physical USB link. Requires a USB OTG (On-The-Go) adapter
@@ -29,8 +28,8 @@ communication.
   not natively support this serial workflow without special hardware.
 
 ## OpenPlotter (Raspberry PI)
-* **Connectivity:** Standard physical connection using any free USB Type-A
-  port on the Raspberry Pi.
+* **Connectivity:** Standard physical connection using any free USB Type-A port
+  on the Raspberry Pi.
 * **Configuration Steps:** Connect the cable. Open the OpenPlotter Serial app,
   select the detected `/dev/ttyACM*` interface, name it, and label its device
   type as "CAN Bus" to map it cleanly.

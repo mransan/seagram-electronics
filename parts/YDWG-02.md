@@ -14,10 +14,10 @@
   accessible inside a standard mobile browser.
 
 # Integration with other devices
-This section details how the YDWG-02 links with external platforms. It
-operates purely as a network-based resource. It has a structural dependency on
-stable 2.4 GHz radio-frequency clear air paths and correct TCP/IP
-configuration parameters.
+This section details how the YDWG-02 links with external platforms. It operates
+purely as a network-based resource. It has a structural dependency on stable
+2.4 GHz radio-frequency clear air paths and correct TCP/IP configuration
+parameters.
 
 ## Tablet / Phones
 * **Connectivity:** 2.4 GHz Wi-Fi link. Devices connect wirelessly to the
@@ -33,15 +33,15 @@ configuration parameters.
   physical USB cabling.
 * **Configuration Steps:** Connect the Raspberry Pi Wi-Fi card to the gateway
   access point, or join both units onto a unified boat router system.
-* **Dependency:** Requires an operational wireless network infrastructure and
-  a persistent, unblocked network path on port 1456 or 2304.
+* **Dependency:** Requires an operational wireless network infrastructure and a
+  persistent, unblocked network path on port 1456 or 2304.
 
 ## PC with OpenCPN
 * **Connectivity:** Wi-Fi connection from the computer's built-in wireless
   adapter card.
 * **Configuration Steps:** Open OpenCPN, navigate to Options -> Connections,
-  click "Add Connection", change the type to "Network", choose "TCP", enter
-  the gateway's IP address, and input the designated port.
+  click "Add Connection", change the type to "Network", choose "TCP", enter the
+  gateway's IP address, and input the designated port.
 * **Dependency:** Relies on structural stability in the operating system's
   wireless network manager to avoid dropping data packets under high
   electromagnetic interference.
