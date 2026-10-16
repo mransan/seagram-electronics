@@ -10,3 +10,8 @@
 .netrwhist
 Session.vim
 Sessionx.vim
+
+# Python byte-compiled and cache files
+__pycache__/
+*.py[cod]
+*$py.class

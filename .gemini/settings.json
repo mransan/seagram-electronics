@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "command(python3*)",
+      "command(regex:^python3.*)"
+    ]
+  },
+  "sandbox": {
+    "allowedCommands": [
+      "python3 *"
+    ]
+  }
+}
