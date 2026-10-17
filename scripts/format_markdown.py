@@ -44,7 +44,7 @@ def wrap_list_item(
     # Check for bullet item with single markdown link:
     # e.g.: * manufacturer link: [Title](url "desc")
     link_match = re.search(
-        r'^(.*?:\s*)?(\[[^\]]+\])\(\s*(https?://[^\s\)]+)'
+        r'^(.*?:(?:\*\*|\*|__|_)?\s*)?(\[[^\]]+\])\(\s*(https?://[^\s\)]+)'
         r'(?:\s+"([^"]*)")?\s*\)$',
         raw_item_text,
     )
@@ -241,6 +241,9 @@ def check_line_lengths(content: str, width: int) -> list[tuple[int, int]]:
         if in_code_block:
             continue
         if stripped.startswith("|") and stripped.endswith("|"):
+            continue
+        # Standalone URLs or link destination lines cannot be broken
+        if re.match(r"^https?://\S+\)?$", stripped):
             continue
         if len(line) > width:
             violations.append((idx, len(line)))
