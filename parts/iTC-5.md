@@ -31,6 +31,22 @@ sensors:
 5. **Rudder Angle & Compass Reference:** Terminal connections to ingest analog
    resistive rudder reference units and legacy fluxgate compass data.
 
+## Important Caveat: Autopilot Critical Sensors
+
+Raymarine has a strict system requirement that autopilot-critical sensors
+(compass and rudder reference) must wire directly into the course computer
+(S2G), not an external network converter like the iTC-5.
+
+1. **Safety and Latency:** The S2G needs immediate, sub-millisecond analog
+   feedback from the compass and rudder to calculate course corrections.
+   Running that data through an iTC-5 and onto a busy network introduces a
+   processing delay that can cause your autopilot to oversteer or fail
+   completely.
+2. **Network Bridging:** As confirmed before, your S2G is already publishing
+   this data. By adding a simple bridge or a Raymarine SeaTalk to SeaTalkng
+   Converter, that data will automatically populate on your NMEA 2000 (N2K)
+   network anyway.
+
 **How to connect:** Transducer cables are routed through the internal rubber
 cable gland at the base of the iTC-5. Strip the raw wire ends, crimp 1/8” spade
 terminals onto each core, and slide them onto the corresponding color-coded
