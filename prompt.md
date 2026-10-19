@@ -21,3 +21,25 @@ structure used in other parts within the @parts folder, in particular the
 - update the README.md file concisely after completing the task to help a
   coding agent understand what has been done and build on top.
 - include this modified @prompt.md file into the commit/pull request
+
+# Implementation feedback
+
+This section is to provide iterative feedback on the ongoing task
+implementation.
+
+## 1. Remove With YDNU-02 / YDWG-02 sections
+
+From what I understand those 2 sections are redundant with information already
+present in those devices md files. If you confirm them remove the section.
+
+## 2. Follow up questions regarding power isolation
+
+if most of the network devices are seatalk1, is it possible to have the N2K bus
+power source be from the seatalk1 yellow spur. are there power limitation to
+this setup if indeed it is possible to do so. For instance N2K side limited
+amperage from the converter
+
+## 3. Follow up question regarding "insulating" the power cable
+
+Can you describe more precisely what would it take to ensure the connected
+cable is insulated.
