@@ -7,6 +7,9 @@ electronics for the Seagram sailing yacht.
 
 - `parts/`: Specifications and integration guides for hardware components and
   gateways.
+  - [`E22158`](parts/E22158.md): Raymarine SeaTalk1 to SeaTalkng Converter Kit
+    (bridging SeaTalk1 instruments/autopilot to N2K, OpenPlotter via YD
+    gateways).
   - [`iTC-5`](parts/iTC-5.md): Raymarine iTC-5 Instrument Transducer Converter
     (includes sensor wiring requirements and S2G course computer caveats).
   - [`M81105`](parts/M81105.md): Raymarine Rotary Rudder Reference Transducer

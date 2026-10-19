@@ -1,14 +1,16 @@
 # Goal 
 
-The goal is to update the iTC-5 part description with an important caveat about which sensor
-should be connected to it. See information below:
+The goal is to add a new part in the @parts folder, the raymarine E22158. This
+part is currently not in used in the seagram electronic architecture, however
+it is something that is a possible upgrade to keep some items on SeaTalk1 while
+other on N2K. Coupled with the
+/Users/maximeransan/Documents/dev/seagram-electronics/parts/YDWG-02.md  or
+/Users/maximeransan/Documents/dev/seagram-electronics/parts/YDNU-02.md it could
+also allowed OpenPlotter to communicate with SeaTalk1.
 
-```
-Raymarine’s strict system requirement is that autopilot critical sensors must wire directly into the course computer (S2G), not an external network converter.
-1. Safety and Latency: The S2G needs immediate, sub-millisecond analog feedback from the compass and rudder to calculate course corrections. Running that data through an iTC-5 and onto a busy network introduces a processing delay that can cause your autopilot to oversteer or fail completely.
-2. Network Bridging: As confirmed before, your S2G is already publishing this data. By adding a simple bridge or a Raymarine SeaTalk to SeaTalkng Converter, that data will automatically populate on your NMEA 2000 (N2K) network anyway.
-```
-
+Use any web resources to find the required information and follow the markdown
+structure used in other parts within the @parts folder, in particular the
+`Device Identifier` section must have same properties.
 
 # Contribution guideline
 
@@ -18,3 +20,4 @@ Raymarine’s strict system requirement is that autopilot critical sensors must 
 - keep lines under 80 characters
 - update the README.md file concisely after completing the task to help a
   coding agent understand what has been done and build on top.
+- include this modified @prompt.md file into the commit/pull request
