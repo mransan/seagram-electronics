@@ -9,6 +9,8 @@ electronics for the Seagram sailing yacht.
   gateways.
   - [`iTC-5`](parts/iTC-5.md): Raymarine iTC-5 Instrument Transducer Converter
     (includes sensor wiring requirements and S2G course computer caveats).
+  - [`M81105`](parts/M81105.md): Raymarine Rotary Rudder Reference Transducer
+    (wiring, S2G direct integration, SeaTalk1 datagrams, and calibration).
   - [`M81190`](parts/M81190.md): Raymarine Fluxgate Compass Transducer (wiring,
     S2G integration, SeaTalk1 datagrams, and calibration).
   - [`YDNU-02`](parts/YDNU-02.md): Yacht Devices NMEA 2000 to USB Gateway.
