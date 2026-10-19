@@ -12,7 +12,7 @@ electronics for the Seagram sailing yacht.
   - [`M81105`](parts/M81105.md): Raymarine Rotary Rudder Reference Transducer
     (wiring, S2G vs EV-1/ACU-100 integration, SeaTalk1/N2K, and calibration).
   - [`M81190`](parts/M81190.md): Raymarine Fluxgate Compass Transducer (wiring,
-    S2G integration, SeaTalk1 datagrams, and calibration).
+    S2G integration, SeaTalk1 datagrams, and EV-1 replacement).
   - [`YDNU-02`](parts/YDNU-02.md): Yacht Devices NMEA 2000 to USB Gateway.
   - [`YDWG-02`](parts/YDWG-02.md): Yacht Devices NMEA 2000 to Wi-Fi Gateway.
 - `scripts/`: Development and maintenance helper scripts.
