@@ -5,6 +5,9 @@ electronics for the Seagram sailing yacht.
 
 ## Directory Structure
 
+- `docs/`: Technical protocol specifications and architectural documentation.
+  - [`seatalk1`](docs/seatalk1.md): SeaTalk1 protocol specification, electrical
+    architecture, Wired-OR signaling, datagram structures, and N2K bridging.
 - `parts/`: Specifications and integration guides for hardware components and
   gateways.
   - [`E22158`](parts/E22158.md): Raymarine SeaTalk1 to SeaTalkng Converter Kit
