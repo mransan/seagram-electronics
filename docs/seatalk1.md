@@ -42,16 +42,25 @@ parallel to every device across the network:
 
 SeaTalk1 installations employ three physical connection types:
 
-1. **Molded 3-Pin Curved Connector:** Proprietary keyed 3-pin plugs used on the
-   back of Autohelm and Raymarine instrument displays (ST40, ST50, ST60, ST60+,
-   ST7000, etc.). Most instruments provide two identical parallel 3-pin ports,
-   enabling simple daisy-chain jumper cables from display to display.
+1. **Molded 3-Pin Flat/Curved Connector:** Proprietary keyed 3-pin plugs used
+   on the back of Autohelm and Raymarine instrument displays (ST40, ST60,
+   ST60+, etc.), such as the [Raymarine D284 cable][ref-d284-img]. Most
+   instruments provide two identical parallel 3-pin ports, enabling simple
+   daisy-chain jumper cables from display to display.
 2. **Screw Terminals:** Found on autopilot course computers (such as Type 100,
    Type 300, 150/400, S1, S2, S2G, S3), course computer auxiliary junction
    boxes, and instrument interface pods. Terminals are labeled `+12V` (or
-   `RED`), `DATA` (or `YEL`), and `0V` (or `SCREEN`/`BLK`).
-3. **Flat 3-Pin Connectors:** Prevalent on early Autohelm ST50 series units
-   before the round/curved 3-pin Raymarine standard was introduced.
+   `RED`), `DATA` (or `YEL`), and `0V` (or `SCREEN`/`BLK`), as shown in the
+   [Raymarine SmartPilot user guides][ref-smartpilot-manuals].
+3. **Round 3-Pin Connectors:** Prevalent on early Autohelm ST50 series units
+   before the flat 3-pin standard was introduced, often adapted to flat
+   connectors using cables such as the [Raymarine D187 adapter][ref-d187-img].
+
+[ref-d284-img]:
+https://www.freeportmarine.com/cdn/shop/files/14067XL_1024x1024.jpg?v=1723151752
+[ref-smartpilot-manuals]: https://www.raymarine.com/en-us/support/user-manuals
+[ref-d187-img]:
+https://www.nmeashop.co.uk/image/cache/catalog/prod/raymarine/d187-800x800.JPG
 
 ### 1.3 Bus Topologies and Cable Rules
 
@@ -76,12 +85,22 @@ computer serial standards (such as RS-232, RS-422, or 5V TTL UART).
 
 ### 2.1 Electrical Signaling Levels
 
-Rather than standard positive TTL logic, SeaTalk1 uses an inverted voltage
-scheme relative to the ground reference:
+Rather than standard positive TTL logic (Transistor-Transistor Logic, a
+0V-to-5V digital signaling standard where 5V is binary 1 and 0V is binary 0),
+SeaTalk1 uses an active-low open-collector architecture where:
 
-* **Idle / Mark / Logic 1 State:** `+12V DC` (nominal, pulled to the positive
-  supply rail).
+* **Idle / Mark / Logic 1 State:** `+12V DC` (nominal, pulled passively to the
+  positive supply rail). Logical 1 is represented by a positive voltage (+12V).
 * **Active / Space / Logic 0 State:** `0V DC` (ground, actively clamped).
+  Logical 0 is asserted by pulling the line to 0V ground.
+
+The term "inverted" commonly arises because in classical RS-232 computer
+serial, the idle/mark state is a negative voltage (-3V to -12V) and
+active/space is a positive voltage (+3V to +12V). Compared to standard
+un-inverted RS-232 receivers (or active-low driver inputs), SeaTalk1's line
+polarity requires signal inversion when interfacing with standard serial ports.
+However, on the bus itself, positive voltage represents binary 1, and 0V
+represents binary 0.
 
 ```
  Voltage
@@ -117,10 +136,12 @@ parameters:
 | **Command / 9th Bit** | 1 Bit (**1** on command header byte, **0** on data bytes) |
 | **Stop Bit** | 1 Bit (Transmitter releases line, allowing it to pull up to +12V) |
 
-Standard PC serial UART controllers typically operate with 8 data bits and
-optional parity (e.g., 8N1). Because SeaTalk1 utilizes a 9th data bit (the
-Command bit), standard 8-bit UARTs cannot receive or transmit SeaTalk1 natively
-without either:
+Standard PC serial UART controllers (Universal Asynchronous
+Receiver-Transmitter, a hardware circuit converting parallel data into serial
+bitstreams for communication) typically operate with 8 data bits and optional
+parity (e.g., 8N1). Because SeaTalk1 utilizes a 9th data bit (the Command bit),
+standard 8-bit UARTs cannot receive or transmit SeaTalk1 natively without
+either:
 1. Setting UART mode to 9-bit mode (supported on many microcontrollers like
    PIC, AVR, STM32, and ESP32).
 2. Using stick-parity / mark-space parity switching tricks on standard PC
@@ -290,9 +311,13 @@ A complete datagram follows this canonical structure:
    * Transmitted with the **9th bit set to 0** (Space).
    * Usually structured as two 4-bit nibbles: `[U : S]`
      * High nibble `U`: Optional device identity flags or high-order data bits.
-     * Low nibble `S`: Defines the number of additional data bytes following
-       Byte 1: $$\text{Total Message Length (bytes)} = S + 3$$ *(If $S = 0$,
-       the message has $0 + 3 = 3$ bytes total: Byte 0, Byte 1, and Byte 2).*
+     * Low nibble `S`: Defines the number of **additional** data bytes beyond
+       the mandatory first data byte (Byte 2). In other words, every SeaTalk1
+       message always carries at least one byte of data payload (Byte 2),
+       making 3 bytes the absolute minimum message length: $$\text{Total
+       Message Length (bytes)} = S + 3$$ *(For example, if $S = 0$, there are 0
+       additional data bytes, giving $0 + 3 = 3$ bytes total: Byte 0 [Command],
+       Byte 1 [Length/Attribute], and Byte 2 [Mandatory Data Byte]).*
 3. **Bytes 2 to N — Data Payload:**
    * Transmitted with the **9th bit set to 0**.
    * Contain binary or packed BCD values (angles, depth in tenths of feet,
