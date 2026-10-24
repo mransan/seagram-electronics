@@ -47,4 +47,8 @@ implementation.
     packet assembly/verification formulas ($N = 1 + \lceil(L - 6) / 7\rceil$).
   - Detailed address 254 (Cannot Claim Address) MFD alert behavior, dormant
     listen-only state, and retry/backoff trigger conditions.
+  - Added concise diagnostic note on RF ground drain wire purpose and
+    single-point grounding rule (<50 words).
+  - Added concise architectural note on T-Connectors as passive parallel wiring
+    taps without active circuitry (<50 words).
 
