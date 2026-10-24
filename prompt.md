@@ -31,6 +31,8 @@ implementation.
   NAME address claim negotiation (J1939-81), Load Equivalency Number (LEN)
   power budgeting and 1.67V max drop rules, PC/SBC/ESP32 interfacing,
   diagnostic matrix, and comprehensive web citation links.
-- Updated `README.md` to reference `docs/nmea2000.md`.
-- Formatted all markdown to strictly respect the 80-character line length
-  limit.
+- Updated `docs/nmea2000.md` with Section 1.5 detailing how to connect multiple
+  instruments (cockpit instrument pod with 3 displays) via a single cable run
+  using either a multi-port drop box (Maretron / Actisense) or by extending the
+  terminated backbone trunk into the pod (e.g., Raymarine 5-Way A06064).
+
