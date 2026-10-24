@@ -6,6 +6,10 @@ electronics for the Seagram sailing yacht.
 ## Directory Structure
 
 - `docs/`: Technical protocol specifications and architectural documentation.
+  - [`nmea2000`](docs/nmea2000.md): NMEA 2000 (IEC 61162-3) protocol
+    specification, CAN bus physical layer, ISO 11898-2 differential signaling,
+    SAE J1939 framing, PGN datagrams, dynamic address arbitration, and LEN
+    power budgeting.
   - [`seatalk1`](docs/seatalk1.md): SeaTalk1 protocol specification, electrical
     architecture, Wired-OR signaling, datagram structures, and N2K bridging.
 - `parts/`: Specifications and integration guides for hardware components and
