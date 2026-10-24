@@ -35,4 +35,16 @@ implementation.
   instruments (cockpit instrument pod with 3 displays) via a single cable run
   using either a multi-port drop box (Maretron / Actisense) or by extending the
   terminated backbone trunk into the pod (e.g., Raymarine 5-Way A06064).
+- Addressed code review comments on PR #11:
+  - Fixed math rendering issues by removing underscores in math blocks and
+    replacing with clean LaTeX/plain notation.
+  - Clarified transmitter address limits (252 active talkers) vs. unlimited
+    listen-only nodes.
+  - Clarified MSB-first bit order transmission and non-destructive arbitration.
+  - Corrected and detailed the 18-bit PGN bit allocation breakdown: EDP (1b) +
+    DP (1b) + PF (8b) + PS (8b) = 18 bits total.
+  - Detailed single-frame vs. Fast Packet specification rules and dynamic
+    packet assembly/verification formulas ($N = 1 + \lceil(L - 6) / 7\rceil$).
+  - Detailed address 254 (Cannot Claim Address) MFD alert behavior, dormant
+    listen-only state, and retry/backoff trigger conditions.
 
