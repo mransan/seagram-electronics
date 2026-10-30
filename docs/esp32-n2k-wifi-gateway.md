@@ -160,7 +160,130 @@ digital GPIO via the internal GPIO matrix:
 
 ---
 
-## 4. Software Architecture and Data Streaming Protocols
+## 4. Dedicated M5Stack Implementation (Atom Lite + Atomic CANBase)
+
+The **M5Stack Atom Lite** paired with the **Atomic CANBase** represents the
+most compact, modular, and mechanically robust approach for building a marine
+N2K gateway. Both modules snap together into a protective molded housing
+measuring only $24 \times 48 \times 18\,\text{mm}$ without requiring custom PCB
+fabrication.
+
+### 4.1 Hardware Architecture and Inter-Module Connection
+
+The M5Stack assembly consists of two interlocking physical layers:
+
+```
++--------------------------------------------------------------------------+
+|                  M5Stack Modular Hardware Stack Layout                   |
+|                                                                          |
+|   +------------------------------------------------------------------+   |
+|   | [ M5Stack Atom Lite ] (Top Module: ESP32-PICO-D4 Core + Wi-Fi)   |   |
+|   |   - Reset button, RGB Status LED, 2.4 GHz 3D Wi-Fi antenna       |   |
+|   +------------------------------------------------------------------+   |
+|                                 ||                                       |
+|               (9-Pin Gold Header / Socket Interface)                     |
+|                                 ||                                       |
+|   +------------------------------------------------------------------+   |
+|   | [ Atomic CANBase ] (Bottom Base: Galvanic Isolation Barrier)     |   |
+|   |   - CA-IS3050G isolated CAN transceiver (2.5 kV RMS isolation)   |   |
+|   |   - Integrated isolated DC-DC converter for transceiver power    |   |
+|   |   - HT3.96-4P external screw terminal block                     |   |
+|   +------------------------------------------------------------------+   |
++--------------------------------------------------------------------------+
+```
+
+1. **Top Controller (Atom Lite):** Houses an ESP32-PICO-D4 system-in-package
+   (240 MHz dual-core, 4 MB SPI flash), an RGB LED for network status, and a
+   female header on the underside.
+2. **Bottom Base (Atomic CANBase):** Snaps directly onto the bottom of the Atom
+   Lite via the 9-pin interface header. It incorporates a **CA-IS3050G**
+   galvanically isolated CAN transceiver.
+3. **Internal Header Routing (Base to Controller):**
+   * **CAN_TX (Transceiver TXD):** Hardwired internally to **GPIO 22** on the
+     Atom Lite.
+   * **CAN_RX (Transceiver RXD):** Hardwired internally to **GPIO 19** on the
+     Atom Lite.
+   * **5V & GND:** Powers the controller and the logic side of the isolated
+     transceiver.
+
+### 4.2 Complete 12V NMEA 2000 Wiring Scheme
+
+Because the M5Stack logic and transceiver input run at 5V DC, and the Atomic
+CANBase does **not** contain a high-voltage marine step-down converter, **the
+12V N2K power line must not be connected directly to the M5Stack pins**.
+
+A miniature DC-DC step-down buck converter (e.g., MP1584EN or TSR 1-2450) must
+be placed between the NMEA 2000 cable and the M5Stack to step the 12V bus
+voltage down to a clean 5V:
+
+```
+[ NMEA 2000 Micro-C Spur Cable ]
+  (From Backbone T-Connector)
+             |
+             +--- White Wire (CAN_H / NET-H) ----> [ Terminal Pin H ] --+
+             |                                                          | (Atomic CANBase
+             +--- Blue Wire  (CAN_L / NET-L) ----> [ Terminal Pin L ] --+  HT3.96-4P)
+             |                                                          |
+             |    Bare Shield Wire (Drain) ------> (Float / isolated)   |
+             |                                                          |
+             +--- Black Wire (0V / NET-C) -------+-> [ Terminal Pin G ] -+
+             |                                   |
+             |                                   +-----------------------+
+             |                                                           |
+             |                                            [ DC-DC Buck ] |
+             |                                            [ Converter  ] |
+             |                                            [ (12V -> 5V)] |
+             +--- Red Wire (+12V / NET-S) ---[0.5A Fuse]-> [ VIN (+)   ] |
+                                                           [ GND (-)   ]-+
+                                                           [ VOUT (+5V)]======> Atom Lite 5V Pin
+                                                           [ VOUT (GND)]======> Atom Lite GND Pin
+```
+
+#### Detailed Pin-to-Pin Interconnection Table
+
+| NMEA 2000 Conductor | Color | Destination Module | Target Connection Pin | Function |
+| :--- | :--- | :--- | :--- | :--- |
+| **NET-H (CAN High)** | **White** | Atomic CANBase | **Terminal Pin H** | Differential CAN High data stream |
+| **NET-L (CAN Low)** | **Blue** | Atomic CANBase | **Terminal Pin L** | Differential CAN Low data stream |
+| **NET-C (0V Ground)** | **Black** | Atomic CANBase & Buck Input | **Terminal Pin G** & **Buck GND In** | Common marine DC return / transceiver reference |
+| **NET-S (+12V Power)**| **Red** | DC-DC Buck Input | **Buck VIN In** (via 0.5A fuse) | Primary 12V bus DC power rail |
+| **Shield (Drain)** | **Bare** | Unconnected | Isolated with heat-shrink | Grounded exclusively at single backbone power tap |
+| **Regulated +5V** | **Red (Internal)**| Atom Lite Controller | **5V Pin** (or USB-C VBUS) | Energizes ESP32 MCU and Wi-Fi radio (~180 mA) |
+| **Regulated 0V** | **Black (Internal)**| Atom Lite Controller | **GND Pin** | System ground reference for MCU |
+
+### 4.3 Power Budget and 12V Marine Supply Safety
+
+* **Power Draw from N2K Bus:** The Atom Lite with Wi-Fi transmitting draws ~180
+  mA at 5V ($0.9\,\text{W}$). Converted through a 90% efficient switching buck
+  converter from 12V nominal marine power: $$I_{12\text{V}} =
+  \frac{0.9\,\text{W}}{12\,\text{V} \times 0.90} \approx 83\,\text{mA}$$ This
+  current draw corresponds to **2 LEN** ($100\,\text{mA}$ budget), well within
+  standard NMEA 2000 spur load rules.
+* **Over-Current & Spike Protection:** Always insert an inline **0.5A
+  fast-acting fuse** on the red wire before the buck converter. This protects
+  the boat's backbone wiring from shorts in the event of an internal regulator
+  component failure.
+* **Termination Resistor Notice:** The Atomic CANBase includes a
+  trace/solder-bridge or internal termination option. Because the gateway is
+  attached as a **spur drop** (not at the physical end of the backbone), ensure
+  any internal $120\,\Omega$ terminating resistor on the base is **disabled /
+  open**, preserving the network's standard $60\,\Omega$ total termination.
+
+### 4.4 Firmware Configuration for M5Stack Atom Lite
+
+When deploying the firmware from Section 5 onto the M5Stack Atom Lite, the CAN
+pin definitions in `src/main.cpp` must be updated to match the Atomic CANBase's
+fixed hardware routing:
+
+```cpp
+// --- M5Stack Atom Lite + Atomic CANBase Pin Definitions ---
+#define CAN_RX_PIN GPIO_NUM_19  // Hardwired CAN_RX from CA-IS3050G
+#define CAN_TX_PIN GPIO_NUM_22  // Hardwired CAN_TX to CA-IS3050G
+```
+
+---
+
+## 5. Software Architecture and Data Streaming Protocols
 
 To replicate the functionality of commercial gateways, the gateway firmware
 must support multiple network transport modes and data formats.
@@ -229,14 +352,14 @@ must support multiple network transport modes and data formats.
 
 ---
 
-## 5. Implementation: Arduino / C++ Firmware Code
+## 6. Implementation: Arduino / C++ Firmware Code
 
 The following complete firmware implementation uses [Timo Lappalainen's
 NMEA2000 library][ref-lappalainen-n2k], the [NMEA2000_esp32 hardware
 driver][ref-lappalainen-esp32], and the [NMEA0183
 library][ref-lappalainen-0183].
 
-### 5.1 PlatformIO Environment Configuration (`platformio.ini`)
+### 6.1 PlatformIO Environment Configuration (`platformio.ini`)
 
 ```ini
 [env:esp32dev]
@@ -250,7 +373,7 @@ lib_deps =
     ttlappalainen/NMEA0183@^1.8.4
 ```
 
-### 5.2 Core Gateway Code (`src/main.cpp`)
+### 6.2 Core Gateway Code (`src/main.cpp`)
 
 ```cpp
 #include <Arduino.h>
@@ -399,7 +522,7 @@ void loop() {
 
 ---
 
-## 6. Integration and Client Configuration
+## 7. Integration and Client Configuration
 
 Connecting client devices to the DIY gateway matches standard commercial
 gateway workflows:
@@ -447,12 +570,12 @@ gateway workflows:
 
 ---
 
-## 7. Community Ecosystem, Open-Source Projects, and Social Groups
+## 8. Community Ecosystem, Open-Source Projects, and Social Groups
 
 The open-source marine electronics community maintains an extensive library of
 tested firmware, reference designs, and peer troubleshooting networks:
 
-### 7.1 Key Open-Source GitHub Repositories
+### 8.1 Key Open-Source GitHub Repositories
 
 * **Core Libraries:**
   * [ttlappalainen/NMEA2000][ref-lappalainen-n2k]: Foundation C++ library for
@@ -471,7 +594,7 @@ tested firmware, reference designs, and peer troubleshooting networks:
     for ESP32, including native Signal K over WebSocket and N2K gateway
     extensions.
 
-### 7.2 Marine Electronics Developer Communities & Forums
+### 8.2 Marine Electronics Developer Communities & Forums
 
 * **[OpenBoatProjects.org][ref-openboatprojects]:** The premier German/European
   open-source marine electronics collective, providing open-hardware schematics
@@ -483,7 +606,7 @@ tested firmware, reference designs, and peer troubleshooting networks:
   articles detailing raw N2K packet formats, Wi-Fi latency mitigation, and
   ground isolation.
 
-### 7.3 Facebook Groups and Social Maker Collectives
+### 8.3 Facebook Groups and Social Maker Collectives
 
 * **[OpenSource Marine Electronics (Facebook
   Group)][ref-fb-opensource-marine]:** Active international forum for sailors
@@ -498,7 +621,7 @@ tested firmware, reference designs, and peer troubleshooting networks:
 
 ---
 
-## 8. Troubleshooting and Diagnostic Reference
+## 9. Troubleshooting and Diagnostic Reference
 
 | Symptom | Probable Cause | Verification & Corrective Action |
 | :--- | :--- | :--- |
@@ -510,7 +633,7 @@ tested firmware, reference designs, and peer troubleshooting networks:
 
 ---
 
-## 9. References and Documentation
+## 10. References and Documentation
 
 * [Yacht Devices YDWG-02 Wi-Fi Gateway Specification][ref-ydwg02-doc]:
   Commercial reference device specifications and network architecture.
