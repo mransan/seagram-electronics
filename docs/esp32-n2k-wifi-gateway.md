@@ -14,14 +14,21 @@ mobile devices (iPhones, iPads, Android tablets) running navigation software
 (Navionics Boating, Aqua Map, OpenCPN) and shipboard servers (Signal K on
 OpenPlotter) to access real-time boat telemetry over Wi-Fi.
 
+In addition to CAN bridging, the gateway functions as an auxiliary sensor
+concentrator by integrating **I2C environmental and motion sensors**
+(barometric pressure, cabin humidity, boat heeling/pitch, and backup compass
+heading) as well as **1-Wire temperature probes** (engine head and wet exhaust
+monitoring), broadcasting this telemetry directly onto the N2K bus and Wi-Fi
+data streams.
+
 ---
 
 ## 1. Architectural Overview and Feasibility
 
 Commercial marine gateways like the Yacht Devices YDWG-02 retail for
 approximately \$249 USD. A custom ESP32-based gateway achieving identical or
-superior data-throughput and stream flexibility can be constructed for \$15 to
-\$55 USD depending on component choices.
+superior data-throughput and stream flexibility can be constructed for \$25 to
+\$60 USD depending on component choices.
 
 ```
 +--------------------------------------------------------------------------+
@@ -33,7 +40,7 @@ superior data-throughput and stream flexibility can be constructed for \$15 to
 |          |                                                               |
 |          v                                                               |
 |  +--------------------------------------------------------------------+  |
-|  | Hardware: Isolated CAN Transceiver + DC-DC Step-Down (3.3V/5V)     |  |
+|  | Hardware: Isolated CAN Transceiver + DC-DC Step-Down (12V -> 5V)   |  |
 |  +--------------------------------------------------------------------+  |
 |          | TWAI (CAN_TX / CAN_RX)                                        |
 |          v                                                               |
@@ -41,14 +48,14 @@ superior data-throughput and stream flexibility can be constructed for \$15 to
 |  | ESP32 Microcontroller Core (FreeRTOS Dual Core)                    |  |
 |  |  - Core 0: CAN interrupt, PGN parsing, NMEA 0183 conversion        |  |
 |  |  - Core 1: Wi-Fi stack, TCP server, UDP broadcast, Web UI          |  |
+|  |  - Sensor Tasks: I2C (BME280 / MPU9250), 1-Wire (DS18B20 Probes)   |  |
 |  +--------------------------------------------------------------------+  |
-|          |                                                               |
-|          +--- 2.4 GHz 802.11 b/g/n Wi-Fi (SoftAP or Station Mode)        |
-|               |                                                          |
-|               +--> TCP Port 1456 / 2304: Raw N2K / Actisense (Signal K)   |
-|               +--> TCP Port 10110: NMEA 0183 Stream (OpenCPN, Aqua Map)  |
-|               +--> UDP Port 2000: Broadcast Stream (Navionics, Tablets)  |
-|               +--> HTTP Port 80: Web Configuration & Diagnostics UI      |
+|          |                                      |                        |
+|          | (Local Sensor Buses)                 | (Wi-Fi 802.11 b/g/n)   |
+|          +--> I2C: Baro, Humid, Heel, Pitch     +--> TCP 1456: Raw N2K   |
+|          +--> 1-Wire: Engine & Exhaust Temps    +--> TCP 10110: 0183     |
+|                                                 +--> UDP 2000: Tablets   |
+|                                                 +--> HTTP 80: Web UI     |
 +--------------------------------------------------------------------------+
 ```
 
@@ -57,8 +64,8 @@ superior data-throughput and stream flexibility can be constructed for \$15 to
 * **Processing Capability:** The ESP32 dual-core Xtensa LX6 microprocessor
   operates at up to 240 MHz with 520 KB SRAM. It possesses ample computation
   margin to handle full NMEA 2000 bus loads (250 kbps, typically 300 to 1,500
-  frames/second) while managing Wi-Fi networking, TCP buffering, and sentence
-  conversion.
+  frames/second) while managing Wi-Fi networking, TCP buffering, sensor
+  sampling routines, and sentence conversion.
 * **Integrated CAN Controller (TWAI):** The ESP32 silicon includes an on-chip
   hardware CAN 2.0B controller, named the [Two-Wire Automotive Interface
   (TWAI)][ref-esp32-twai]. It directly implements 29-bit extended frame
@@ -68,71 +75,25 @@ superior data-throughput and stream flexibility can be constructed for \$15 to
   (STA) mode (joining an existing onboard router) and Access Point (SoftAP)
   mode, alongside native FreeRTOS TCP/IP (LwIP) sockets.
 
----
-
-## 2. Hardware Bill of Materials (BOM) and Cost Analysis
-
-Depending on assembly preferences, builders can construct the hardware using
-discrete prototyping modules, pre-packaged industrial microcontroller blocks,
-or dedicated open-source marine electronics boards:
-
-### 2.1 Bill of Materials: Three Hardware Approaches
-
-| Component | Part Description | Approx Price (USD) | Function & Sourcing Links |
-| :--- | :--- | :--- | :--- |
-| **Approach 1: Discrete Prototyping (Lowest Cost)** | | | |
-| Microcontroller | ESP32 DevKit V1 (NodeMCU-32S) | \$4.50 – \$7.00 | Dual-core 240 MHz MCU, integrated Wi-Fi / Bluetooth ([Espressif][ref-espressif-esp32]) |
-| CAN Transceiver | Texas Instruments SN65HVD230 (3.3V) | \$2.00 – \$4.00 | Non-isolated 3.3V CAN transceiver ([TI Datasheet][ref-sn65hvd230-ti]) |
-| Isolated Transceiver (Recommended) | Texas Instruments ISO1050 / CA-IS3050G module | \$5.00 – \$9.00 | Galvanically isolated CAN transceiver ([TI ISO1050][ref-iso1050-ti]) |
-| DC-DC Power Supply | LM2596 / MP1584EN Step-Down (Buck) | \$2.00 – \$4.00 | Converts 12V N2K rail to clean 5V DC ([Pololu Regulators][ref-pololu-buck]) |
-| Spur Connector | NMEA 2000 Micro-C Field-Attachable Male | \$9.00 – \$15.00 | Standard waterproof 5-pin M12 connector ([Maretron Field Make][ref-maretron-cabling]) |
-| Enclosure & Passives | Waterproof ABS junction box, 0.1A fuse | \$5.00 – \$8.00 | IP65 enclosure, terminal blocks, fuse protection |
-| **Total (Approach 1)** | | **\$27.50 – \$47.00** | |
-| **Approach 2: Modular Industrial Core (M5Stack)** | | | |
-| Core Module | [M5Stack Atom Lite][ref-m5stack-atom] or AtomS3 | \$7.50 – \$12.00 | Compact ESP32 in molded enclosure with GPIO header |
-| Isolated CAN Base | [M5Stack Atomic CANBase][ref-m5stack-canbase] (CA-IS3050G) | \$8.50 – \$12.00 | Galvanically isolated CAN interface with DC-DC power input (up to 24V) |
-| Spur Cable | Micro-C Drop Cable (1 meter, bare end) | \$12.00 – \$18.00 | Molded DeviceNet Micro-C male to bare wire ([Actisense Cable][ref-actisense-guide]) |
-| **Total (Approach 2)** | | **\$28.00 – \$42.00** | Plug-and-play assembly, minimal soldering required |
-| **Approach 3: Dedicated Marine Board (Commercial-Grade DIY)** | | | |
-| Integrated Board | [Sailor Hat with ESP32 (SH-ESP32)][ref-sh-esp32] | \$35.00 – \$55.00 | Marine-grade ESP32 board with isolated CAN, wide 8–32V buck supply, opto-inputs |
-| Spur Cable | Standard Micro-C Spur Cable (1 m) | \$12.00 – \$18.00 | Connects directly to SH-ESP32 screw terminals |
-| **Total (Approach 3)** | | **\$47.00 – \$73.00** | Galvanic isolation, transient TVS protection, open-source |
-
----
-
-## 3. Circuit Schematics and Electrical Wiring
+### 1.2 Transceiver Selection: Isolated vs. Non-Isolated
 
 Connecting an ESP32 safely to an NMEA 2000 network requires strict adherence to
-isolation, voltage regulation, and signal line mapping.
+isolation, voltage regulation, and signal line mapping:
 
-```
-NMEA 2000 Spur Line                   Isolation Barrier              ESP32 Microcontroller
-====================                   =================              =====================
-
-Pin 2: NET-S (+12V DC) ---[ Fuse 0.5A ]---> [ DC-DC Buck ] === 5V ====> ESP32 5V (VBUS)
-Pin 3: NET-C (0V GND)  -------------------> [ Converter ] === GND ===> ESP32 GND
-                                                  |
-Pin 4: NET-H (CAN_H)   -----------------> [ Isolated   ] === RX =====> GPIO 4 (TWAI_RX)
-Pin 5: NET-L (CAN_L)   -----------------> [ CAN XCVR   ] === TX =====> GPIO 5 (TWAI_TX)
-                                          [ (ISO1050)  ] === 3.3V ===< ESP32 3.3V Rail
-Pin 1: Shield (Drain)  ---(Unconnected at device; grounded at N2K power tap only)
-```
-
-### 3.1 Transceiver Selection: Isolated vs. Non-Isolated
-
-1. **Non-Isolated (SN65HVD230):**
+1. **Non-Isolated Transceiver (e.g., SN65HVD230):**
    * Uses a common ground plane between the boat's battery bank and the ESP32.
    * *Limitation:* Prone to ground loops and voltage differentials when
      powering the ESP32 from a separate USB port or laptop, risking hardware
      burnout during engine cranking or high-load inverter activity.
-2. **Galvanically Isolated (ISO1050 / CA-IS3050G):**
+     Non-isolated interfaces do not comply with commercial marine standards.
+2. **Galvanically Isolated Transceiver (e.g., ISO1050 / CA-IS3050G):**
    * Features a silicon dielectric capacitive or magnetic isolation barrier
-     rated to 2.5 kV RMS or higher.
+     rated to 1 kV DC or 2.5 kV RMS.
    * Completely isolates the differential data pair (`CAN_H` / `CAN_L`) and
      chassis grounds, preventing earth loops and electrical interference from
      migrating between the navigation backbone and the Wi-Fi gateway.
 
-### 3.2 Power Supply and Voltage Regulation
+### 1.3 Power Supply and Voltage Regulation
 
 Standard marine NMEA 2000 power fluctuates between 11.5V and 14.8V DC (with
 transient spikes up to 40V during inductive load dumps):
@@ -147,34 +108,150 @@ transient spikes up to 40V during inductive load dumps):
   $1.7\,\text{W}$ of waste heat in an unventilated enclosure. Use a switching
   step-down converter (e.g., MP1584EN, LM2596, or Recom R-78 series).
 
-### 3.3 GPIO Pin Mapping
+### 1.4 Auxiliary Sensor Protocols: I2C and 1-Wire
 
-The ESP32 allows the TWAI CAN controller to be routed to nearly any available
-digital GPIO via the internal GPIO matrix:
+Expanding the gateway to act as an environmental, motion, and engine monitor
+leverages two standard microcontroller buses:
 
-| Signal Name | ESP32 GPIO Pin | Function |
-| :--- | :--- | :--- |
-| **TWAI_RX** | **GPIO 4** (or GPIO 16, 21) | Receives CAN data stream from transceiver RXD |
-| **TWAI_TX** | **GPIO 5** (or GPIO 17, 22) | Transmits CAN data stream to transceiver TXD |
-| **Status LED** | **GPIO 2** (or Onboard LED) | Pulses upon successful PGN reception / Wi-Fi activity |
+#### I2C Bus (Inter-Integrated Circuit)
+
+I2C is a 2-wire synchronous serial protocol (SDA data, SCL clock) with open-
+drain drivers and pull-up resistors (typically $4.7\,\text{k}\Omega$ to 3.3V).
+It allows multiple addressable sensors to share the same bus over short wire
+runs ($< 1\,\text{meter}$):
+
+* **Environmental Monitoring (Bosch BME280):** Measures barometric pressure
+  ($\pm 1\,\text{hPa}$), ambient temperature ($\pm 0.5^\circ\text{C}$), and
+  relative humidity ($\pm 3\%$). Essential for tracking barometric pressure
+  drops to anticipate squalls and storms.
+  * *N2K Output:* Broadcasts PGN 130310 (Environmental Parameters) and PGN
+    130311 (Environmental Parameters, Detailed).
+* **Vessel Attitude & Heeling (InvenSense MPU-6050 / MPU-9250):** 6-axis or
+  9-axis Inertial Measurement Unit (IMU) measuring roll, pitch, and angular
+  rates. Provides real-time boat heeling angles for performance sailing and
+  trim optimization.
+  * *N2K Output:* Broadcasts PGN 127257 (Attitude: Yaw, Pitch, Roll).
+* **Backup Compass Heading (QMC5883L / BNO085):** Digital 3-axis magnetometer
+  providing magnetic heading as an independent redundancy for the primary
+  autopilot fluxgate or gyro compass.
+  * *N2K Output:* Broadcasts PGN 127250 (Vessel Heading).
+
+#### 1-Wire Bus (Dallas / Maxim)
+
+1-Wire is a master-slave asynchronous protocol requiring only a single data
+line (plus ground and optional 3.3V/5V power) with a single
+$4.7\,\text{k}\Omega$ pull-up resistor. Every 1-Wire device possesses a
+factory-lasered unique 64-bit ROM address, allowing dozens of probes to be
+wired in parallel along a single twisted pair:
+
+* **Engine & Exhaust Temperature Probes (Dallas DS18B20):** Ruggedized,
+  waterproof stainless-steel tubular probes rated from $-55^\circ\text{C}$ to
+  $+125^\circ\text{C}$ ($\pm 0.5^\circ\text{C}$ accuracy).
+  * **Engine Head / Block Probe:** Monitors engine coolant or cylinder head
+    temperature for thermal saturation.
+  * **Wet Exhaust Hose Probe:** Installed directly against or into the wet
+    exhaust mixing elbow. A raw water impeller failure causes exhaust gas
+    temperatures to spike above $80^\circ\text{C}$ within seconds, alerting the
+    skipper minutes before the engine block temperature alarm triggers.
+  * *N2K Output:* Broadcasts PGN 130312 (Temperature) and PGN 130316
+    (Temperature, Extended Range) with source types set to Main Engine and
+    Exhaust Gas.
 
 ---
 
-## 4. Dedicated M5Stack Implementation (Atom Lite + Atomic CANBase)
+## 2. Hardware Options
 
-The **M5Stack Atom Lite** paired with the **Atomic CANBase** represents the
-most compact, modular, and mechanically robust approach for building a marine
-N2K gateway. Both modules snap together into a protective molded housing
-measuring only $24 \times 48 \times 18\,\text{mm}$ without requiring custom PCB
-fabrication.
+Depending on assembly preferences, required sensor integrations, and budget,
+builders can construct the gateway using one of three architectural approaches:
 
-### 4.1 Hardware Architecture and Inter-Module Connection
+1. **Discrete Prototyping:** Bare-metal ESP32 dev board with discrete isolated
+   transceiver and buck converter, wired via prototyping headers or breadboard.
+2. **M5Stack Modular Ecosystem:** Atom Lite controller docked onto an Atomic
+   PortABC base with an external isolated CANBus Unit, offering three
+   dedicated, keyed Grove ports for plug-and-play wiring.
+3. **Marine Integrated Board (SH-ESP32):** Commercial-grade open-source marine
+   PCB featuring integrated isolated CAN, automotive-grade 8–32V power supply,
+   TVS surge suppression, and built-in screw terminals for I2C and 1-Wire.
 
-The M5Stack assembly consists of two interlocking physical layers:
+---
+
+### 2.1 Discrete Prototyping
+
+This approach utilizes individual off-the-shelf breakout modules. It is the
+lowest-cost option and provides complete flexibility, but requires point-to-
+point soldering, custom wire harnesses, and an external enclosure.
+
+#### Bill of Materials (Discrete Prototyping)
+
+| Component | Part Description | Approx Price (USD) | Function & Sourcing Links |
+| :--- | :--- | :--- | :--- |
+| **Microcontroller** | ESP32 DevKit V1 (NodeMCU-32S) | \$4.50 – \$7.00 | Dual-core 240 MHz MCU, integrated Wi-Fi / Bluetooth ([Espressif][ref-espressif-esp32]) |
+| **Isolated CAN Transceiver** | TI ISO1050 / CA-IS3050G Breakout | \$5.00 – \$9.00 | 2.5 kV RMS isolated CAN transceiver with isolated DC-DC ([TI ISO1050][ref-iso1050-ti]) |
+| **DC-DC Step-Down (Buck)** | MP1584EN or LM2596 Buck Converter | \$2.00 – \$4.00 | Converts 12V N2K rail to clean 5V DC ([Pololu Regulators][ref-pololu-buck]) |
+| **Spur Cable** | NMEA 2000 Micro-C Drop Cable (1 m) | \$12.00 – \$18.00 | Molded DeviceNet Micro-C male to bare pigtail wires ([Actisense Cable][ref-actisense-guide]) |
+| **Inline Fuse** | 0.5A fast-blow inline fuse holder | \$1.50 – \$3.00 | Protects backbone wiring against DC-DC converter short |
+| **Environmental Sensor** | BME280 Breakout Module (I2C) | \$4.00 – \$8.00 | Pressure, temperature, and humidity sensor |
+| **Motion / IMU Sensor** | MPU-9250 or MPU-6050 Breakout (I2C) | \$3.50 – \$7.00 | 9-axis or 6-axis gyro/accelerometer/compass |
+| **Engine Temp Probes** | DS18B20 Waterproof Stainless (x2) | \$5.00 – \$8.00 | Engine block and wet exhaust temperature probes |
+| **Pull-up Resistor** | $4.7\,\text{k}\Omega$ 1/4W Resistor | \$0.20 – \$0.50 | 1-Wire bus pull-up to 3.3V |
+| **Enclosure & Passives** | IP65 ABS Junction Box + Glands | \$6.00 – \$10.00 | Sealed marine enclosure and cable strain reliefs |
+| **Total (Discrete)** | | **\$43.70 – \$74.50** | Lowest component cost; requires manual soldering |
+
+#### Point-to-Point Wiring Description
+
+All connections are made via point-to-point soldering or prototype terminal
+strips:
+
+1. **NMEA 2000 Spur Cable Connections:**
+   * **Red Wire (NET-S / +12V DC):** Connects to **Inline Fuse (0.5A)** input;
+     the fuse output connects to **Buck Converter VIN (+)**.
+   * **Black Wire (NET-C / 0V Ground):** Connects to a common ground junction
+     that connects to **Buck Converter VIN (-)** and **Isolated CAN Transceiver
+     Bus-Side GND (GND2)**.
+   * **White Wire (NET-H / CAN High):** Connects to **Isolated CAN Transceiver
+     CAN_H Terminal**.
+   * **Blue Wire (NET-L / CAN Low):** Connects to **Isolated CAN Transceiver
+     CAN_L Terminal**.
+   * **Bare Shield Wire (Drain):** Left unconnected (floating) at the device;
+     grounded exclusively at the single central N2K power insertion tap.
+2. **Power Supply & ESP32 Connections:**
+   * **Buck Converter VOUT (+5V):** Connects to **ESP32 DevKit 5V (VBUS) Pin**
+     and **Isolated CAN Transceiver Logic-Side VCC1**.
+   * **Buck Converter VOUT (GND):** Connects to **ESP32 DevKit GND Pin** and
+     **Isolated CAN Transceiver Logic-Side GND1**.
+3. **CAN Controller (TWAI) Signal Connections:**
+   * **Isolated CAN Transceiver TXD Pin:** Connects to **ESP32 GPIO 5**
+     (TWAI_TX).
+   * **Isolated CAN Transceiver RXD Pin:** Connects to **ESP32 GPIO 4**
+     (TWAI_RX).
+4. **I2C Sensor Bus Connections (BME280 & MPU-9250):**
+   * **ESP32 3.3V Out Pin:** Connects to **BME280 VCC** and **MPU-9250 VCC**.
+   * **ESP32 GND Pin:** Connects to **BME280 GND** and **MPU-9250 GND**.
+   * **ESP32 GPIO 21 (SDA):** Connects to **BME280 SDA** and **MPU-9250 SDA**.
+   * **ESP32 GPIO 22 (SCL):** Connects to **BME280 SCL** and **MPU-9250 SCL**.
+5. **1-Wire Temperature Sensor Bus Connections (DS18B20 Probes):**
+   * **ESP32 3.3V Out Pin:** Connects to **DS18B20 Red Wires (VDD)** and to one
+     lead of the **$4.7\,\text{k}\Omega$ Pull-up Resistor**.
+   * **ESP32 GND Pin:** Connects to **DS18B20 Black Wires (GND)**.
+   * **ESP32 GPIO 18 Pin:** Connects to **DS18B20 Yellow Wires (DATA)** and to
+     the second lead of the **$4.7\,\text{k}\Omega$ Pull-up Resistor**.
+
+---
+
+### 2.2 M5Stack Modular Ecosystem
+
+The M5Stack modular approach eliminates custom soldering by leveraging keyed
+Grove cables, modular snap-on enclosures, and pre-packaged sensor modules. The
+preferred architecture pairs an **Atom Lite** controller with an **Atomic
+PortABC Base** and an external **M5Stack CANBus Unit (CA-IS3050G)**.
+
+This arrangement breaks out three distinct, dedicated Grove ports: Port A
+(I2C), Port B (GPIO / 1-Wire), and Port C (UART / CAN), completely avoiding
+header conflicts and maintaining a sealed, professional installation.
 
 ```
 +--------------------------------------------------------------------------+
-|                  M5Stack Modular Hardware Stack Layout                   |
+|                  M5Stack Modular Hardware Architecture                   |
 |                                                                          |
 |   +------------------------------------------------------------------+   |
 |   | [ M5Stack Atom Lite ] (Top Module: ESP32-PICO-D4 Core + Wi-Fi)   |   |
@@ -184,109 +261,159 @@ The M5Stack assembly consists of two interlocking physical layers:
 |               (9-Pin Gold Header / Socket Interface)                     |
 |                                 ||                                       |
 |   +------------------------------------------------------------------+   |
-|   | [ Atomic CANBase ] (Bottom Base: Galvanic Isolation Barrier)     |   |
-|   |   - CA-IS3050G isolated CAN transceiver (2.5 kV RMS isolation)   |   |
-|   |   - Integrated isolated DC-DC converter for transceiver power    |   |
-|   |   - HT3.96-4P external screw terminal block                     |   |
-|   +------------------------------------------------------------------+   |
+|   | [ Atomic PortABC Base ] (Port Expansion Base)                    |   |
+|   +-----+-----------------------+----------------------+-------------+   |
+|         |                       |                      |                 |
+|    [ Port A: I2C ]         [ Port B: GPIO ]       [ Port C: UART/CAN ]   |
+|     (GPIO 26/32)            (GPIO 23/33)           (GPIO 19/22)          |
+|         |                       |                      |                 |
+|         v                       v                      v                 |
+|   [ M5 ENV IV Unit ]      [ 1-Wire Adapter ]     [ M5 CANBus Unit ]      |
+|    (BME280 + SHT40)        (DS18B20 Probes)       (Isolated CA-IS3050G)  |
+|                                                        |                 |
+|                                                        v                 |
+|                                                 [ NMEA 2000 Spur ]       |
 +--------------------------------------------------------------------------+
 ```
 
-1. **Top Controller (Atom Lite):** Houses an ESP32-PICO-D4 system-in-package
-   (240 MHz dual-core, 4 MB SPI flash), an RGB LED for network status, and a
-   female header on the underside.
-2. **Bottom Base (Atomic CANBase):** Snaps directly onto the bottom of the Atom
-   Lite via the 9-pin interface header. It incorporates a **CA-IS3050G**
-   galvanically isolated CAN transceiver.
-3. **Internal Header Routing (Base to Controller):**
-   * **CAN_TX (Transceiver TXD):** Hardwired internally to **GPIO 22** on the
-     Atom Lite.
-   * **CAN_RX (Transceiver RXD):** Hardwired internally to **GPIO 19** on the
-     Atom Lite.
-   * **5V & GND:** Powers the controller and the logic side of the isolated
-     transceiver.
+#### Bill of Materials (M5Stack Ecosystem)
 
-### 4.2 Complete 12V NMEA 2000 Wiring Scheme
+| Component | Part Description | Approx Price (USD) | Function & Sourcing Links |
+| :--- | :--- | :--- | :--- |
+| **Controller** | [M5Stack Atom Lite][ref-m5stack-atom] | \$7.50 – \$10.00 | ESP32-PICO-D4 in compact $24 \times 24\,\text{mm}$ housing |
+| **Port Expansion Base** | [M5Stack Atomic PortABC Base][ref-m5stack-portabc] | \$5.50 – \$8.00 | Snaps to Atom Lite, breaking out Port A, Port B, Port C |
+| **Isolated CAN Transceiver** | [M5Stack CANBus Unit (CA-IS3050G)][ref-m5stack-canunit] | \$9.50 – \$13.00 | Isolated CAN transceiver unit with screw terminals |
+| **DC-DC Step-Down (Buck)** | Mini Buck Regulator (e.g. MP1584EN) | \$2.00 – \$4.00 | Steps 12V N2K rail down to 5.0V to power the stack |
+| **Inline Fuse** | 0.5A fast-blow inline fuse holder | \$1.50 – \$3.00 | Protects backbone wiring against DC-DC converter short |
+| **Spur Cable** | NMEA 2000 Micro-C Drop Cable (1 m) | \$12.00 – \$18.00 | Micro-C male connector to bare pigtail wires |
+| **Environmental Sensor** | [M5Stack ENV IV Unit][ref-m5stack-env4] (I2C) | \$8.50 – \$12.00 | SHT40 + BMP280 environmental module (Grove Port A) |
+| **Attitude / IMU Sensor** | [M5Stack IMU Unit][ref-m5stack-imu] (I2C) | \$6.00 – \$9.00 | 6-axis / 9-axis attitude sensor (daisy-chains on Port A) |
+| **Grove I2C Hub** | [M5Stack Grove Hub][ref-m5stack-hub] (1-to-3) | \$2.50 – \$4.00 | Passive I2C splitter for multiple Grove sensors |
+| **1-Wire Temperature Probes** | DS18B20 Probes + Grove Adapter | \$7.00 – \$12.00 | Engine & wet exhaust probes wired to Port B |
+| **Total (M5Stack)** | | **\$62.00 – \$93.00** | Modular, no soldering, industrial plastic enclosures |
 
-Because the M5Stack logic and transceiver input run at 5V DC, and the Atomic
-CANBase does **not** contain a high-voltage marine step-down converter, **the
-12V N2K power line must not be connected directly to the M5Stack pins**.
+#### Point-to-Point Wiring Description
 
-A miniature DC-DC step-down buck converter (e.g., MP1584EN or TSR 1-2450) must
-be placed between the NMEA 2000 cable and the M5Stack to step the 12V bus
-voltage down to a clean 5V:
-
-```
-[ NMEA 2000 Micro-C Spur Cable ]
-  (From Backbone T-Connector)
-             |
-             +--- White Wire (CAN_H / NET-H) ----> [ Terminal Pin H ] --+
-             |                                                          | (Atomic CANBase
-             +--- Blue Wire  (CAN_L / NET-L) ----> [ Terminal Pin L ] --+  HT3.96-4P)
-             |                                                          |
-             |    Bare Shield Wire (Drain) ------> (Float / isolated)   |
-             |                                                          |
-             +--- Black Wire (0V / NET-C) -------+-> [ Terminal Pin G ] -+
-             |                                   |
-             |                                   +-----------------------+
-             |                                                           |
-             |                                            [ DC-DC Buck ] |
-             |                                            [ Converter  ] |
-             |                                            [ (12V -> 5V)] |
-             +--- Red Wire (+12V / NET-S) ---[0.5A Fuse]-> [ VIN (+)   ] |
-                                                           [ GND (-)   ]-+
-                                                           [ VOUT (+5V)]======> Atom Lite 5V Pin
-                                                           [ VOUT (GND)]======> Atom Lite GND Pin
-```
-
-#### Detailed Pin-to-Pin Interconnection Table
-
-| NMEA 2000 Conductor | Color | Destination Module | Target Connection Pin | Function |
-| :--- | :--- | :--- | :--- | :--- |
-| **NET-H (CAN High)** | **White** | Atomic CANBase | **Terminal Pin H** | Differential CAN High data stream |
-| **NET-L (CAN Low)** | **Blue** | Atomic CANBase | **Terminal Pin L** | Differential CAN Low data stream |
-| **NET-C (0V Ground)** | **Black** | Atomic CANBase & Buck Input | **Terminal Pin G** & **Buck GND In** | Common marine DC return / transceiver reference |
-| **NET-S (+12V Power)**| **Red** | DC-DC Buck Input | **Buck VIN In** (via 0.5A fuse) | Primary 12V bus DC power rail |
-| **Shield (Drain)** | **Bare** | Unconnected | Isolated with heat-shrink | Grounded exclusively at single backbone power tap |
-| **Regulated +5V** | **Red (Internal)**| Atom Lite Controller | **5V Pin** (or USB-C VBUS) | Energizes ESP32 MCU and Wi-Fi radio (~180 mA) |
-| **Regulated 0V** | **Black (Internal)**| Atom Lite Controller | **GND Pin** | System ground reference for MCU |
-
-### 4.3 Power Budget and 12V Marine Supply Safety
-
-* **Power Draw from N2K Bus:** The Atom Lite with Wi-Fi transmitting draws ~180
-  mA at 5V ($0.9\,\text{W}$). Converted through a 90% efficient switching buck
-  converter from 12V nominal marine power: $$I_{12\text{V}} =
-  \frac{0.9\,\text{W}}{12\,\text{V} \times 0.90} \approx 83\,\text{mA}$$ This
-  current draw corresponds to **2 LEN** ($100\,\text{mA}$ budget), well within
-  standard NMEA 2000 spur load rules.
-* **Over-Current & Spike Protection:** Always insert an inline **0.5A
-  fast-acting fuse** on the red wire before the buck converter. This protects
-  the boat's backbone wiring from shorts in the event of an internal regulator
-  component failure.
-* **Termination Resistor Notice:** The Atomic CANBase includes a
-  trace/solder-bridge or internal termination option. Because the gateway is
-  attached as a **spur drop** (not at the physical end of the backbone), ensure
-  any internal $120\,\Omega$ terminating resistor on the base is **disabled /
-  open**, preserving the network's standard $60\,\Omega$ total termination.
-
-### 4.4 Firmware Configuration for M5Stack Atom Lite
-
-When deploying the firmware from Section 5 onto the M5Stack Atom Lite, the CAN
-pin definitions in `src/main.cpp` must be updated to match the Atomic CANBase's
-fixed hardware routing:
-
-```cpp
-// --- M5Stack Atom Lite + Atomic CANBase Pin Definitions ---
-#define CAN_RX_PIN GPIO_NUM_19  // Hardwired CAN_RX from CA-IS3050G
-#define CAN_TX_PIN GPIO_NUM_22  // Hardwired CAN_TX to CA-IS3050G
-```
+1. **NMEA 2000 Spur Cable Connections:**
+   * **Red Wire (NET-S / +12V DC):** Connects to **Inline Fuse (0.5A)** input;
+     the fuse output connects to **Buck Converter VIN (+)**.
+   * **Black Wire (NET-C / 0V Ground):** Connects to a common terminal that
+     branches to **Buck Converter VIN (-)** and **M5 CANBus Unit Terminal G
+     (GND)**.
+   * **White Wire (NET-H / CAN High):** Connects to **M5 CANBus Unit Terminal H
+     (CAN_H)**.
+   * **Blue Wire (NET-L / CAN Low):** Connects to **M5 CANBus Unit Terminal L
+     (CAN_L)**.
+   * **Bare Shield Wire (Drain):** Left unconnected (floating) at the gateway;
+     grounded exclusively at the single central N2K power insertion tap.
+2. **5V Power Distribution from Buck Converter:**
+   * **Buck Converter VOUT (+5V):** Connects to **Atom Lite 5V Pin** (or
+     soldered to a cut USB-C cable powering the Atom Lite port).
+   * **Buck Converter VOUT (GND):** Connects to **Atom Lite GND Pin**.
+   * *Note:* The Atom Lite distributes this regulated 5V through the PortABC
+     base to power the CANBus Unit, I2C sensors, and 1-Wire sensors.
+3. **M5Stack Inter-Module & Sensor Cabling (Pre-Crimped Grove Cables):**
+   * **Atom Lite to PortABC Base:** Snaps directly together via the underside
+     9-pin mating header.
+   * **Port C (Blue Grove Port):** Connects via a 4-pin Grove cable to the
+     **M5Stack CANBus Unit**. The PortABC maps **GPIO 19** to CAN_RX and **GPIO
+     22** to CAN_TX.
+   * **Port A (Red Grove Port):** Connects via a 4-pin Grove cable to the
+     **M5Stack Grove Hub**:
+     * Hub Port 1 connects to the **M5Stack ENV IV Unit** (GPIO 26 SDA, GPIO 32
+       SCL, 3.3V, GND).
+     * Hub Port 2 connects to the **M5Stack IMU Unit** (sharing the I2C bus).
+   * **Port B (Black Grove Port):** Connects to the **1-Wire Temperature
+     Probes**:
+     * Port B Pin 1 (5V / 3.3V Power): Connects to **DS18B20 Red Wires (VDD)**.
+     * Port B Pin 2 (GND): Connects to **DS18B20 Black Wires (GND)**.
+     * Port B Pin 3 (**GPIO 23**): Connects to **DS18B20 Yellow Wires (DATA)**
+       with an inline $4.7\,\text{k}\Omega$ pull-up resistor to the power wire.
 
 ---
 
-## 5. Software Architecture and Data Streaming Protocols
+### 2.3 Marine Integrated Board: SH-ESP32
 
-To replicate the functionality of commercial gateways, the gateway firmware
-must support multiple network transport modes and data formats.
+The **Sailor Hat with ESP32 (SH-ESP32)** by Hat Labs is a purpose-built, open-
+source hardware marine development board. It incorporates galvanic CAN
+isolation, transient TVS overvoltage suppression, an automotive-grade
+wide-input switching buck regulator, and pluggable screw terminals into a
+single compact board designed for marine electrical panels.
+
+```
++--------------------------------------------------------------------------+
+|                  Sailor Hat with ESP32 (SH-ESP32) Architecture           |
+|                                                                          |
+|   [ N2K 12V / CAN ]          [ DC Power In ]           [ Sensors ]       |
+|    NET-H, NET-L, GND          8V - 32V Input          I2C & 1-Wire       |
+|           |                         |                       |            |
+|           v                         v                       v            |
+|   +---------------+         +---------------+       +---------------+    |
+|   | Galvanically  |         | 8-32V to 5V   |       | Protected     |    |
+|   | Isolated CAN  |         | Auto Buck     |       | Qwiic / Screw |    |
+|   | Transceiver   |         | Converter     |       | Terminals     |    |
+|   +-------+-------+         +-------+-------+       +-------+-------+    |
+|           |                         |                       |            |
+|       (GPIO 32/34)                (5V)                (GPIO 16/17, 4)    |
+|           |                         |                       |            |
+|           +-------------------------+-----------------------+            |
+|                                     |                                    |
+|                                     v                                    |
+|                   +-----------------------------------+                  |
+|                   | ESP32-WROOM-32 Controller Module  |                  |
+|                   |  - 2.4 GHz Wi-Fi / Bluetooth LE   |                  |
+|                   |  - Dual-core Xtensa 240 MHz MCU   |                  |
+|                   +-----------------------------------+                  |
++--------------------------------------------------------------------------+
+```
+
+#### Bill of Materials (SH-ESP32)
+
+| Component | Part Description | Approx Price (USD) | Function & Sourcing Links |
+| :--- | :--- | :--- | :--- |
+| **Integrated Board** | [Sailor Hat with ESP32 (SH-ESP32)][ref-sh-esp32] | \$38.00 – \$55.00 | Marine-grade ESP32 board with isolated CAN, 8–32V buck supply, opto-inputs |
+| **Spur Cable** | NMEA 2000 Micro-C Drop Cable (1 m) | \$12.00 – \$18.00 | Micro-C male connector to bare pigtail wires |
+| **Inline Fuse** | 0.5A fast-blow inline fuse holder | \$1.50 – \$3.00 | Protects backbone wiring against short |
+| **Environmental Sensor** | SparkFun / Adafruit BME280 Qwiic | \$8.00 – \$14.00 | Plugs directly into SH-ESP32 Qwiic/I2C connector |
+| **Attitude / IMU Sensor** | Adafruit 9-DOF IMU (ICM-20948 / BNO085) | \$12.00 – \$22.00 | Daisy-chains onto the Qwiic I2C bus |
+| **Engine Temp Probes** | DS18B20 Waterproof Probes (x2) | \$5.00 – \$8.00 | Plugs directly into the SH-ESP32 1-Wire terminals |
+| **Total (SH-ESP32)** | | **\$76.50 – \$120.00** | Professional marine grade, TVS protection, screw terminals |
+
+#### Point-to-Point Wiring Description
+
+1. **NMEA 2000 Spur Cable Connections:**
+   * **Red Wire (NET-S / +12V DC):** Connects to **Inline Fuse (0.5A)** input;
+     the fuse output connects to **SH-ESP32 VIN Screw Terminal** (accepts 8V to
+     32V DC).
+   * **Black Wire (NET-C / 0V Ground):** Connects to **SH-ESP32 Power GND Screw
+     Terminal** and **CAN GND Terminal**.
+   * **White Wire (NET-H / CAN High):** Connects to **SH-ESP32 CAN_H
+     Terminal**.
+   * **Blue Wire (NET-L / CAN Low):** Connects to **SH-ESP32 CAN_L Terminal**.
+   * **Bare Shield Wire (Drain):** Left unconnected (floating) at the device;
+     grounded exclusively at the central N2K power tap.
+2. **I2C Sensor Bus Connections (BME280 & IMU):**
+   * Connects via standard SparkFun Qwiic (or Adafruit STEMMA QT) 4-pin JST-SH
+     cable directly to the **SH-ESP32 Qwiic Port** (or 2.54 mm screw header):
+     * Pin 1 (GND): Ground.
+     * Pin 2 (3V3): 3.3V Power.
+     * Pin 3 (SDA): Hardwired internally on SH-ESP32 to **GPIO 16**.
+     * Pin 4 (SCL): Hardwired internally on SH-ESP32 to **GPIO 17**.
+3. **1-Wire Temperature Sensor Bus Connections (DS18B20 Probes):**
+   * Connects directly to the dedicated 3-pin 1-Wire header on the SH-ESP32:
+     * **VDD (+3.3V):** Connects to **DS18B20 Red Wires**.
+     * **GND:** Connects to **DS18B20 Black Wires**.
+     * **DQ (Data):** Connects to **DS18B20 Yellow Wires**. Hardwired
+       internally to **GPIO 4** with an integrated onboard pull-up resistor and
+       RClamp ESD surge protection.
+
+---
+
+## 3. Software Architecture and Streaming Protocols
+
+To replicate commercial marine gateways, the firmware manages multiple
+concurrent network sockets, parses N2K CAN traffic, samples onboard sensors,
+and converts data into standard formats:
 
 ```
                           +------------------------+
@@ -310,9 +437,9 @@ must support multiple network transport modes and data formats.
                  +--------------------+--------------------+
                                       |
                                       v
-                    +------------------------------------+
-                    |  Stream Multiplexer & Buffer Ring  |
-                    +-----------------+------------------+
+                     +------------------------------------+
+                     |  Stream Multiplexer & Buffer Ring  |
+                     +-----------------+------------------+
                                       |
          +----------------------------+----------------------------+
          |                            |                            |
@@ -325,7 +452,7 @@ must support multiple network transport modes and data formats.
 +------------------+         +------------------+         +------------------+
 ```
 
-### 4.1 Supported Output Formats
+### 3.1 Supported Output Network Protocols
 
 1. **Yacht Devices RAW Protocol (Default Port 1456 / 2304):**
    * Encapsulates raw CAN frames into human-readable ASCII text lines:
@@ -336,11 +463,13 @@ must support multiple network transport modes and data formats.
    * Directly consumed by Signal K (`@signalk/nmea2000-actisense-serial`) and
      CanboatJS.
 3. **NMEA 0183 Translation (Default Port 10110):**
-   * Converts incoming N2K PGNs into standard ASCII 0183 sentences:
+   * Converts incoming N2K PGNs and local sensor measurements into standard
+     ASCII 0183 sentences:
      * PGN 128267 (Water Depth) $\rightarrow$ `$IIDPT,x.x,x.x*hh`
      * PGN 130306 (Wind Data) $\rightarrow$ `$IIMWV,x.x,R,x.x,K,A*hh`
      * PGN 129029 (GNSS Position) $\rightarrow$ `$GPGGA,...*hh`
      * PGN 127250 (Vessel Heading) $\rightarrow$ `$IIHDG,...*hh`
+     * Local BME280 Pressure $\rightarrow$ `$IIMDA,...*hh` or `$IIXDR,...*hh`
    * Required for marine tablet apps that do not natively parse binary NMEA
      2000.
 4. **UDP Broadcast Streaming (Default Port 2000):**
@@ -350,184 +479,42 @@ must support multiple network transport modes and data formats.
      auto-detects UDP 0183 broadcasts without requiring fixed client IP
      configurations.
 
----
+### 3.2 Software Components and Library Ecosystem
 
-## 6. Implementation: Arduino / C++ Firmware Code
+Building the gateway firmware relies on mature, battle-tested open-source C++
+libraries:
 
-The following complete firmware implementation uses [Timo Lappalainen's
-NMEA2000 library][ref-lappalainen-n2k], the [NMEA2000_esp32 hardware
-driver][ref-lappalainen-esp32], and the [NMEA0183
-library][ref-lappalainen-0183].
-
-### 6.1 PlatformIO Environment Configuration (`platformio.ini`)
-
-```ini
-[env:esp32dev]
-platform = espressif32
-board = esp32dev
-framework = arduino
-monitor_speed = 115200
-lib_deps =
-    ttlappalainen/NMEA2000@^4.21.3
-    ttlappalainen/NMEA2000_esp32@^1.0.3
-    ttlappalainen/NMEA0183@^1.8.4
-```
-
-### 6.2 Core Gateway Code (`src/main.cpp`)
-
-```cpp
-#include <Arduino.h>
-#include <WiFi.h>
-#include <WiFiUdp.h>
-#include <NMEA2000.h>
-#include <NMEA2000_esp32.h>
-#include <N2kMessages.h>
-#include <NMEA0183.h>
-#include <NMEA0183Messages.h>
-
-// --- Configuration Constants ---
-const char* WIFI_SSID     = "Seagram_Gateway";
-const char* WIFI_PASSWORD = "marine_electronics";
-const uint16_t TCP_RAW_PORT   = 1456;   // Yacht Devices RAW / Signal K
-const uint16_t TCP_0183_PORT  = 10110;  // NMEA 0183 (OpenCPN)
-const uint16_t UDP_BROADCAST_PORT = 2000; // Navionics / Tablets
-
-// Pin Definitions for CAN Transceiver
-#define CAN_RX_PIN GPIO_NUM_4
-#define CAN_TX_PIN GPIO_NUM_5
-
-// Global Network Instances
-WiFiServer rawTcpServer(TCP_RAW_PORT);
-WiFiServer nmea0183TcpServer(TCP_0183_PORT);
-WiFiClient rawClient;
-WiFiClient nmea0183Client;
-WiFiUDP udp;
-
-tNMEA0183 NMEA0183Msg;
-
-// Format buffer for Yacht Devices RAW: "hh:mm:ss.ddd R msgid b0 b1 ...\r\n"
-void SendYachtDevicesRaw(const tN2kMsg &N2kMsg) {
-  if (!rawClient || !rawClient.connected()) return;
-
-  char buf[80];
-  uint32_t ms = millis();
-  uint32_t sec = ms / 1000;
-  snprintf(buf, sizeof(buf), "%02u:%02u:%02u.%03u R %08lX",
-           (sec / 3600) % 24, (sec / 60) % 60, sec % 60, ms % 1000,
-           (unsigned long)N2kMsg.GetMsgId());
-  rawClient.print(buf);
-
-  for (int i = 0; i < N2kMsg.DataLen; i++) {
-    snprintf(buf, sizeof(buf), " %02X", N2kMsg.Data[i]);
-    rawClient.print(buf);
-  }
-  rawClient.print("\r\n");
-}
-
-// Convert common PGNs to NMEA 0183 sentences and broadcast
-void HandleNmea0183Translation(const tN2kMsg &N2kMsg) {
-  char nmeaSentence[120] = {0};
-
-  // PGN 128267: Water Depth
-  if (N2kMsg.PGN == 128267L) {
-    unsigned char SID;
-    double DepthBelowTransducer, Offset;
-    if (ParseN2kWaterDepth(N2kMsg, SID, DepthBelowTransducer, Offset)) {
-      tNMEA0183Msg msg;
-      NMEA0183SetDPT(msg, DepthBelowTransducer, Offset);
-      msg.GetMessage(nmeaSentence, sizeof(nmeaSentence));
-    }
-  }
-  // PGN 130306: Wind Data
-  else if (N2kMsg.PGN == 130306L) {
-    unsigned char SID;
-    double WindSpeed, WindAngle;
-    tN2kWindReference WindReference;
-    if (ParseN2kWindSpeed(N2kMsg, SID, WindSpeed, WindAngle, WindReference)) {
-      tNMEA0183Msg msg;
-      // Convert WindAngle radians to degrees
-      double angleDeg = WindAngle * 180.0 / 3.14159265359;
-      // Convert m/s to knots (1 m/s = 1.94384 knots)
-      double speedKnots = WindSpeed * 1.94384;
-      NMEA0183SetMWV(msg, angleDeg,
-                     (WindReference == N2kWind_Apparent) ? "R" : "T",
-                     speedKnots, "N");
-      msg.GetMessage(nmeaSentence, sizeof(nmeaSentence));
-    }
-  }
-
-  // Stream sentence out to connected TCP and UDP clients
-  if (nmeaSentence[0] != '\0') {
-    if (nmea0183Client && nmea0183Client.connected()) {
-      nmea0183Client.print(nmeaSentence);
-    }
-    udp.beginPacket("255.255.255.255", UDP_BROADCAST_PORT);
-    udp.write((const uint8_t*)nmeaSentence, strlen(nmeaSentence));
-    udp.endPacket();
-  }
-}
-
-// Callback invoked on every received N2K CAN frame
-void HandleN2kMsg(const tN2kMsg &N2kMsg) {
-  SendYachtDevicesRaw(N2kMsg);
-  HandleNmea0183Translation(N2kMsg);
-}
-
-void setup() {
-  Serial.begin(115200);
-
-  // Configure Wi-Fi Access Point
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP(WIFI_SSID, WIFI_PASSWORD);
-  Serial.print("Wi-Fi Gateway AP Started. IP: ");
-  Serial.println(WiFi.softAPIP());
-
-  // Start Servers
-  rawTcpServer.begin();
-  nmea0183TcpServer.begin();
-  udp.begin(UDP_BROADCAST_PORT);
-
-  // Configure NMEA 2000 CAN Controller
-  NMEA2000.SetRxPutMode(tNMEA2000::rp_SysCall);
-  NMEA2000.SetMsgHandler(HandleN2kMsg);
-  NMEA2000.SetProductInformation("00000001", 100, "ESP32 N2K Gateway",
-                                 "1.0.0", "DIY Open Gateway");
-  NMEA2000.SetDeviceInformation(1, 130, 25, 2046); // Inter/Intranetwork Gateway
-  NMEA2000.SetMode(tNMEA2000::N2km_ListenOnly);     // Listen-Only Safe Mode
-
-  // Assign CAN pins for ESP32 TWAI
-  NMEA2000.SetForwardType(tNMEA2000::fwdt_Text);
-  NMEA2000.Open();
-}
-
-void loop() {
-  // Service CAN bus receive queue
-  NMEA2000.ParseMessages();
-
-  // Accept incoming raw TCP connections (Signal K / Diagnostics)
-  if (rawTcpServer.hasClient()) {
-    if (!rawClient || !rawClient.connected()) {
-      rawClient = rawTcpServer.available();
-    }
-  }
-
-  // Accept incoming NMEA 0183 TCP connections (OpenCPN)
-  if (nmea0183TcpServer.hasClient()) {
-    if (!nmea0183Client || !nmea0183Client.connected()) {
-      nmea0183Client = nmea0183TcpServer.available();
-    }
-  }
-}
-```
+* **CAN Bus & NMEA 2000 Stack:**
+  * **[NMEA2000 Library][ref-lappalainen-n2k] (Timo Lappalainen):** Core
+    protocol handling, dynamic address negotiation (ISO 11783-5), multi-packet
+    fast-packet reassembly, and PGN encoding/decoding.
+  * **[NMEA2000_esp32][ref-lappalainen-esp32] (Timo Lappalainen):** Hardware
+    driver binding the NMEA2000 library to the ESP32 on-chip TWAI peripheral.
+* **Sentence Translation:**
+  * **[NMEA0183 Library][ref-lappalainen-0183] (Timo Lappalainen):** Creates
+    and encodes standard NMEA 0183 ASCII sentences ($IIDPT, $IIMWV, $IIHDG,
+    $IIXDR) from binary sensor data.
+* **Sensor Drivers:**
+  * **Adafruit BME280 / BMP280 Library:** Configures oversampling, reads
+    compensated barometric pressure, ambient temperature, and relative humidity
+    over I2C.
+  * **OneWire & DallasTemperature Libraries:** Manages 1-Wire discovery, ROM
+    matching, scratchpad reads, and non-blocking 12-bit temperature conversions
+    for DS18B20 probes.
+  * **MPU9250 / BNO085 Sensor Libraries:** Implements sensor fusion (quaternion
+    to Euler angles) to output stable roll, pitch, and yaw.
+* **Network & Sockets:**
+  * **ESP32 Arduino WiFi & WiFiUdp:** Manages concurrent SoftAP/Station modes,
+    TCP servers for streaming, and UDP datagram broadcasts.
 
 ---
 
-## 7. Integration and Client Configuration
+## 4. Integration and Client Configuration
 
 Connecting client devices to the DIY gateway matches standard commercial
 gateway workflows:
 
-### 6.1 Navionics Boating (iPhone, iPad, Android)
+### 4.1 Navionics Boating (iPhone, iPad, Android)
 
 1. Connect the mobile device's Wi-Fi to the gateway's network
    (`Seagram_Gateway`).
@@ -539,7 +526,7 @@ gateway workflows:
    automatically detect the broadcast stream and display live depth, wind, and
    AIS data overlays on charts.
 
-### 6.2 OpenPlotter and Signal K Server (Raspberry Pi)
+### 4.2 OpenPlotter and Signal K Server (Raspberry Pi)
 
 1. Connect the Raspberry Pi to the gateway's Wi-Fi network (or configure the
    ESP32 in Station mode to join the boat router).
@@ -555,9 +542,9 @@ gateway workflows:
    * **Port:** `1456`
 5. Click **Apply**. Signal K will begin streaming and parsing all bus PGNs into
    standard JSON delta keys (`environment.depth.belowTransducer`,
-   `environment.wind.speedApparent`).
+   `environment.wind.speedApparent`, `propulsion.mainEngine.temperature`).
 
-### 6.3 OpenCPN (PC, Mac, Linux)
+### 4.3 OpenCPN (PC, Mac, Linux)
 
 1. Open OpenCPN $\rightarrow$ **Options (Wrench icon) $\rightarrow$ Connections
    $\rightarrow$ Add Connection**.
@@ -566,16 +553,16 @@ gateway workflows:
 4. Address: `192.168.4.1`, DataPort: `10110`.
 5. Check **Receive Input on this Port**.
 6. Click **Apply**. OpenCPN's dashboard instrument panels will populate with
-   depth, heading, and wind indicators.
+   depth, heading, barometric pressure, and wind indicators.
 
 ---
 
-## 8. Community Ecosystem, Open-Source Projects, and Social Groups
+## 5. Community Ecosystem, Open-Source Projects, and Social Groups
 
 The open-source marine electronics community maintains an extensive library of
 tested firmware, reference designs, and peer troubleshooting networks:
 
-### 8.1 Key Open-Source GitHub Repositories
+### 5.1 Key Open-Source GitHub Repositories
 
 * **Core Libraries:**
   * [ttlappalainen/NMEA2000][ref-lappalainen-n2k]: Foundation C++ library for
@@ -594,7 +581,7 @@ tested firmware, reference designs, and peer troubleshooting networks:
     for ESP32, including native Signal K over WebSocket and N2K gateway
     extensions.
 
-### 8.2 Marine Electronics Developer Communities & Forums
+### 5.2 Marine Electronics Developer Communities & Forums
 
 * **[OpenBoatProjects.org][ref-openboatprojects]:** The premier German/European
   open-source marine electronics collective, providing open-hardware schematics
@@ -606,7 +593,7 @@ tested firmware, reference designs, and peer troubleshooting networks:
   articles detailing raw N2K packet formats, Wi-Fi latency mitigation, and
   ground isolation.
 
-### 8.3 Facebook Groups and Social Maker Collectives
+### 5.3 Facebook Groups and Social Maker Collectives
 
 * **[OpenSource Marine Electronics (Facebook
   Group)][ref-fb-opensource-marine]:** Active international forum for sailors
@@ -621,19 +608,21 @@ tested firmware, reference designs, and peer troubleshooting networks:
 
 ---
 
-## 9. Troubleshooting and Diagnostic Reference
+## 6. Troubleshooting and Diagnostic Reference
 
 | Symptom | Probable Cause | Verification & Corrective Action |
 | :--- | :--- | :--- |
-| **No CAN messages received (`N2K.ParseMessages() == 0`)** | CAN_TX and CAN_RX swapped, or missing bus power | Invert GPIO 4 and GPIO 5 in `NMEA2000.SetCANPins()`. Verify +12V rail and $60\,\Omega$ bus resistance between CAN_H and CAN_L. |
-| **ESP32 resets continuously when engine starts** | Non-isolated ground loop or high inductive spike | Replace non-isolated transceiver with galvanically isolated unit (ISO1050). Install 0.5A fast-blow fuse on 12V supply. |
+| **No CAN messages received (`N2K.ParseMessages() == 0`)** | CAN_TX and CAN_RX swapped, or missing bus power | Invert CAN TX/RX pin definitions. Verify +12V rail and $60\,\Omega$ bus resistance between CAN_H and CAN_L. |
+| **ESP32 resets continuously when engine starts** | Non-isolated ground loop or high inductive spike | Replace non-isolated transceiver with galvanically isolated unit (ISO1050/CA-IS3050G). Install 0.5A fast-blow fuse on 12V supply. |
 | **Navionics drops connection intermittently** | Excessive TCP buffer bloat or high Wi-Fi retransmission | Switch tablet feed from TCP to UDP broadcast (Port 2000). Set ESP32 Wi-Fi TX power to maximum (`WiFi.setTxPower(WIFI_POWER_19_5dBm)`). |
 | **Signal K reports CRC / Framing Errors** | CAN transceiver baud rate mismatch | Verify that the TWAI controller bit timing is locked to 250 kbps with 29-bit extended framing. |
 | **High voltage on ESP32 3.3V pin** | Defective buck regulator or 5V connected to 3.3V logic | Measure regulator output with multimeter before attaching ESP32. Ensure buck output is calibrated to 5.0V on VBUS (or 3.3V on 3V3). |
+| **1-Wire Temperature Probes read -127°C** | Missing pull-up resistor or severed data line | Verify $4.7\,\text{k}\Omega$ pull-up resistor between 1-Wire DQ data line and 3.3V power rail. |
+| **I2C Sensor detection fails (NACK on bus scan)** | SCL/SDA lines swapped or insufficient pull-up | Check SDA and SCL pin assignments. Ensure lines have pull-ups enabled internally or on sensor breakout board. |
 
 ---
 
-## 10. References and Documentation
+## 7. References and Documentation
 
 * [Yacht Devices YDWG-02 Wi-Fi Gateway Specification][ref-ydwg02-doc]:
   Commercial reference device specifications and network architecture.
@@ -652,8 +641,15 @@ tested firmware, reference designs, and peer troubleshooting networks:
   marine power regulation modules.
 * [M5Stack Atom Lite Development Kit][ref-m5stack-atom]: Ultra-compact ESP32
   development module.
-* [M5Stack Atomic CANBase (Isolated)][ref-m5stack-canbase]: Isolated
-  marine-capable CAN bus base with built-in wide DC-DC power input.
+* [M5Stack Atomic PortABC Base][ref-m5stack-portabc]: Port expansion base
+  breaking out Port A (I2C), Port B (GPIO), and Port C (UART).
+* [M5Stack CANBus Unit (CA-IS3050G)][ref-m5stack-canunit]: Isolated
+  marine-capable CAN bus transceiver unit with screw terminals.
+* [M5Stack ENV IV Unit (SHT40 + BMP280)][ref-m5stack-env4]: Compact I2C
+  environmental sensor module.
+* [M5Stack IMU Unit][ref-m5stack-imu]: 6-axis / 9-axis attitude and motion
+  sensor module.
+* [M5Stack Grove Hub][ref-m5stack-hub]: Passive 1-to-3 I2C Grove splitter.
 * [Sailor Hat with ESP32 (SH-ESP32)][ref-sh-esp32]: Open-source marine ESP32
   development board with isolated CAN and wide-input power supply.
 * [Timo Lappalainen NMEA2000 Library on GitHub][ref-lappalainen-n2k]: Primary
@@ -664,7 +660,7 @@ tested firmware, reference designs, and peer troubleshooting networks:
   generation and parsing library.
 * [AK-Homberger NMEA2000 Wi-Fi Gateway with ESP32][ref-ak-homberger]:
   Open-source firmware for ESP32 N2K to Wi-Fi bridging.
-* [Wellenvogel ESP32-NMEA2000 Gateway Suite][ref-wellenvogel-esp32]:
+* [wellenvogel/esp32-nmea2000 Gateway Suite][ref-wellenvogel-esp32]:
   OpenBoatProjects multiplexer and gateway software.
 * [Signal K SensESP Sensor Framework][ref-sensesp-main]: Open-source marine
   sensor and gateway development toolkit for ESP32.
@@ -692,8 +688,12 @@ https://www.espressif.com/sites/default/files/documentation/esp32_technical_refe
 [ref-sn65hvd230-ti]: https://www.ti.com/product/SN65HVD230 [ref-iso1050-ti]:
 https://www.ti.com/product/ISO1050 [ref-pololu-buck]:
 https://www.pololu.com/category/136/voltage-regulators [ref-m5stack-atom]:
-https://docs.m5stack.com/en/core/atom_lite [ref-m5stack-canbase]:
-https://docs.m5stack.com/en/atom/atomic_can [ref-sh-esp32]:
+https://docs.m5stack.com/en/core/atom_lite [ref-m5stack-portabc]:
+https://docs.m5stack.com/en/atom/atomic_portabc [ref-m5stack-canunit]:
+https://docs.m5stack.com/en/unit/can [ref-m5stack-env4]:
+https://docs.m5stack.com/en/unit/env4 [ref-m5stack-imu]:
+https://docs.m5stack.com/en/unit/imu [ref-m5stack-hub]:
+https://docs.m5stack.com/en/unit/hub [ref-sh-esp32]:
 https://hatlabs.github.io/sh-esp32/ [ref-lappalainen-n2k]:
 https://github.com/ttlappalainen/NMEA2000 [ref-lappalainen-esp32]:
 https://github.com/ttlappalainen/NMEA2000_esp32 [ref-lappalainen-0183]:
