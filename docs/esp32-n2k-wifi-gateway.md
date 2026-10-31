@@ -163,6 +163,13 @@ hardware:
   The diode blocks reverse current from flowing back into the converter when
   USB-C is plugged in, while incurring an insignificant voltage drop ($\sim
   0.25\,\text{V}$) during normal operation.
+* **Method 4 (Wireless Over-The-Air Development - Recommended):** Completely
+  eliminate the physical USB connection after the initial firmware bootstrap.
+  By leveraging ESP32 Wi-Fi Over-The-Air (OTA) updates and wireless network
+  logging (detailed in Section 3.3), new firmware builds and real-time debug
+  logs are transmitted over Wi-Fi while the controller remains powered by the
+  boat's 12V supply. This removes any physical connection to the computer and
+  entirely eliminates backfeed hazards.
 
 ### 1.4 Auxiliary Sensor Protocols: I2C and 1-Wire
 
@@ -562,6 +569,59 @@ libraries:
 * **Network & Sockets:**
   * **ESP32 Arduino WiFi & WiFiUdp:** Manages concurrent SoftAP/Station modes,
     TCP servers for streaming, and UDP datagram broadcasts.
+
+### 3.3 Wireless Over-The-Air (OTA) Development and Remote Logging
+
+Developing and testing firmware on a boat is significantly simplified by
+performing firmware uploads and log monitoring wirelessly over Wi-Fi. This
+eliminates the need to physically access the enclosure or plug in a USB cable,
+avoiding the dual-power backfeeding hazards identified in Section 1.3.
+
+#### Dual-Partition OTA Architecture
+
+The ESP32 uses a dual application partition table (`ota_0` and `ota_1`):
+* The active firmware executes from partition `ota_0`.
+* During a wireless upload, incoming binary flash chunks are received over the
+  TCP OTA socket and written sequentially to `ota_1`.
+* The ESP32 verifies the SHA256 checksum and cryptographic image header before
+  updating the bootloader's active partition pointer.
+* Upon automatic reboot, the ESP32 boots into the newly uploaded firmware. If
+  an upload fails or is interrupted by a power cut, the bootloader
+  automatically rolls back to the last operational partition, preventing
+  bricking.
+
+#### PlatformIO Wireless Environment Configuration
+
+In PlatformIO, transitioning from USB flashing to wireless flashing requires
+adding an OTA target environment to `platformio.ini`:
+
+```ini
+[env:m5atom-ota]
+platform = espressif32
+board = m5stack-atom
+framework = arduino
+upload_protocol = espota
+upload_port = 192.168.4.1       ; Gateway SoftAP IP or boat router IP
+upload_flags =
+    --auth=marine_ota_secret    ; Optional security password
+```
+
+#### Wireless Debugging: Replacing the USB Serial Monitor
+
+Without a physical USB cable attached, real-time diagnostic output is accessed
+wirelessly using one of two methods:
+
+1. **Telnet Streaming (Port 23 / `RemoteDebug` Library):**
+   * The firmware runs a lightweight Telnet daemon listening on port 23.
+   * Developers connect from a laptop terminal using standard command-line
+     tools: `telnet 192.168.4.1 23` or `nc 192.168.4.1 23`.
+   * All diagnostic messages (`debugI()`, `debugW()`, `debugE()`) stream
+     directly to the laptop terminal in real time.
+2. **WebSocket / HTTP Web Diagnostics (Port 80):**
+   * The ESP32 serves a single-page HTML/JavaScript console displaying
+     real-time CAN frame counters, PGN decode rates, I2C/1-Wire sensor
+     readings, and system memory stats directly in any mobile or desktop web
+     browser.
 
 ---
 
