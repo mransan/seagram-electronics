@@ -6,6 +6,10 @@ electronics for the Seagram sailing yacht.
 ## Directory Structure
 
 - `docs/`: Technical protocol specifications and architectural documentation.
+  - [`esp32-n2k-wifi-gateway`](docs/esp32-n2k-wifi-gateway.md): DIY ESP32 NMEA
+    2000 to Wi-Fi/Ethernet gateway specification (alternative to YDWG-02), with
+    I2C environmental/motion and 1-Wire engine monitoring sensors across
+    discrete, M5Stack (PortABC + CANBus Unit), and SH-ESP32 hardware options.
   - [`nmea2000`](docs/nmea2000.md): NMEA 2000 (IEC 61162-3) protocol
     specification, CAN bus physical layer, ISO 11898-2 differential signaling,
     SAE J1939 framing, PGN datagrams, dynamic address arbitration, and LEN

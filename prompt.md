@@ -1,12 +1,17 @@
 # Goal 
 
-The goal is add a new file in @docs folder for the NEMA 2K marine protocol in
-similar fashion as we did for the SeaTalk1 marine protocol.
+The goal is add a new file in @docs folder to describe how to implement an
+ESP32 based N2K listener part (aka wired) and create a TCP/UDP server so that
+iphone, tablets, or even OpenPlotter SignalK can connect and read the data.
 
-The topic covered should be similar as for the SeaTalk1.
+This is essentially building a DIY version of the @parts/YDWG-02.md
 
-What is important is to enrich the markdown file with url links which supports
-most of the statement and information provided in the file.
+The goal is to understand the feasibility from a hardware and software point of
+view. What part to purchase and their prices, how they should be connected,
+major pieces of software to code and a ton of reference from existing similar
+project. The latter should include website, facebook post (lots of ESP32 or
+boat electronics group on Facebook) and github projects.
+
 
 # Contribution guideline
 
@@ -21,34 +26,51 @@ most of the statement and information provided in the file.
 # Implementation feedback
 
 This section is to provide iterative feedback on the ongoing task
-implementation.
+implementation. This should only be edited by the prompter.
 
-- Created `docs/nmea2000.md` covering physical architecture, DeviceNet/Micro-C
-  cable dimensions and pinouts, ISO 11898-2 differential signaling, termination
-  resistor mechanics ($60\,\Omega$ bus / $120\,\Omega$ terminators), CAN 2.0B
-  extended framing (29-bit identifiers), non-destructive bitwise arbitration,
-  Parameter Group Numbers (PGNs) with Fast Packet transport, dynamic 64-bit
-  NAME address claim negotiation (J1939-81), Load Equivalency Number (LEN)
-  power budgeting and 1.67V max drop rules, PC/SBC/ESP32 interfacing,
-  diagnostic matrix, and comprehensive web citation links.
-- Updated `docs/nmea2000.md` with Section 1.5 detailing how to connect multiple
-  instruments (cockpit instrument pod with 3 displays) via a single cable run
-  using either a multi-port drop box (Maretron / Actisense) or by extending the
-  terminated backbone trunk into the pod (e.g., Raymarine 5-Way A06064).
-- Addressed code review comments on PR #11:
-  - Fixed math rendering issues by removing underscores in math blocks and
-    replacing with clean LaTeX/plain notation.
-  - Clarified transmitter address limits (252 active talkers) vs. unlimited
-    listen-only nodes.
-  - Clarified MSB-first bit order transmission and non-destructive arbitration.
-  - Corrected and detailed the 18-bit PGN bit allocation breakdown: EDP (1b) +
-    DP (1b) + PF (8b) + PS (8b) = 18 bits total.
-  - Detailed single-frame vs. Fast Packet specification rules and dynamic
-    packet assembly/verification formulas ($N = 1 + \lceil(L - 6) / 7\rceil$).
-  - Detailed address 254 (Cannot Claim Address) MFD alert behavior, dormant
-    listen-only state, and retry/backoff trigger conditions.
-  - Added concise diagnostic note on RF ground drain wire purpose and
-    single-point grounding rule (<50 words).
-  - Added concise architectural note on T-Connectors as passive parallel wiring
-    taps without active circuitry (<50 words).
+## 1. Expanding scope and better structure
+
+### 1.a Scope expansion: I2C sensors and 1-wire sensors
+
+We will add to the requirement that the ESP32 can support I2C sensors with a
+primary focus on accurate environment monitoring (temperature, humidity and
+barometric pressure) as well as gyro sensor to monitor boat heeling, and
+finally a compass heading as a backup for the existing raymarine compass.
+
+We will also add the requirement to support 1-wire sensors with a concrete
+focus on temperature probes for the engine.
+
+### 1.b restructure 
+
+- section 1. is unchanged in scope as it is generic
+- section 2. should be renamed hardware options. After a brief overview there
+  should be 3 subsection, one for each of the hardware options
+  - 2.1 Discrete prototyping: each component is as bare bone as possible and
+    integration requires soldering or development board
+  - 2.2 M5Stack: leverage the M5Stack ecosystem of controller, sensors and  and
+    components. The prefered solution for this one, should be using the PortABC
+    + CANBus unit approach.
+  - 2.3 Marine integrated board: SH-ESP32
+
+For each of the subsection 2.1, 2.2, 2.3 follow a consistent sub structure and
+content
+ - bill of material
+ - wiring description: do attempt to draw schematic using ASCI, rather for each
+   component and their pin/wire, indicate to which other component it should be
+   connected. While verbose it's the most accurate.
+
+The existing 3.1 and 3.2 could be put into the section 1 as those technical
+details applies to all 3 hardware solutions.
+
+Section 1 should now contain information regarding the I2C and 1-wire protocols
+and sensors.
+
+Section 4. should be folded into 2.2 after taking into account the latest
+choice of compoents.
+
+Section 6 can be removed, as those low level code detail should be left to
+implementation plan which is not yet in scope. Let's limit this document to
+software component and capabilities (library + protocol supported).
+
+
 
