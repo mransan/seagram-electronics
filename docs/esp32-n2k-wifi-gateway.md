@@ -93,20 +93,76 @@ isolation, voltage regulation, and signal line mapping:
      chassis grounds, preventing earth loops and electrical interference from
      migrating between the navigation backbone and the Wi-Fi gateway.
 
-### 1.3 Power Supply and Voltage Regulation
+### 1.3 Power Supply, Voltage Regulation, and Dual-Power Hazards
 
-Standard marine NMEA 2000 power fluctuates between 11.5V and 14.8V DC (with
-transient spikes up to 40V during inductive load dumps):
+Standard marine 12V DC power fluctuates between 11.5V and 14.8V DC (with
+transient spikes up to 40V during inductive load dumps or alternator load
+dumps). The ESP32 and associated sensor peripherals operate at 5.0V / 3.3V DC
+logic and consume approximately 120 mA to 240 mA at 3.3V (averaging ~180 mA
+during active Wi-Fi transmission). Linear regulators (e.g. LM7805 or AMS1117)
+must never be used directly from 12V because dissipating $1.7\,\text{W}$ of
+waste heat in an unventilated marine enclosure causes thermal shutdown. A
+high-efficiency switching step-down (buck) converter is required.
 
-* **Power Draw (LEN):** An ESP32 with active Wi-Fi transmission consumes
-  approximately 120 mA to 240 mA at 3.3V (averaging ~180 mA). Operating through
-  a high-efficiency switching buck regulator at 12V DC, the gateway draws ~50
-  mA from the backbone: $$\text{LEN} = \frac{50\,\text{mA}}{50\,\text{mA/LEN}}
-  = 1\,\text{LEN}$$
-* **Switching Buck Regulator:** Do not use linear regulators (like LM7805 or
-  AMS1117) directly from 12V; dropping 12V to 3.3V at 200 mA dissipates over
-  $1.7\,\text{W}$ of waste heat in an unventilated enclosure. Use a switching
-  step-down converter (e.g., MP1584EN, LM2596, or Recom R-78 series).
+#### Power Source Options: N2K Backbone vs. 12V Distribution Panel
+
+Builders can energize the gateway from one of two power rails:
+
+1. **Option A: Powered from the NMEA 2000 Backbone (LEN Budgeted):**
+   * Draws 12V directly from the Micro-C drop cable red/black pair.
+   * Converted through an efficient switching buck regulator, the gateway draws
+     $\sim 50\,\text{mA}$ from the backbone: $$\text{LEN} =
+     \frac{50\,\text{mA}}{50\,\text{mA/LEN}} = 1\,\text{LEN}$$
+   * *Trade-off:* Consumes power from the N2K network power tap and requires an
+     inline 0.5A fast-blow fuse to protect backbone cabling.
+2. **Option B: Powered from the Boat 12V DC Distribution Panel (Recommended):**
+   * Connects the buck converter directly to a dedicated switched breaker or
+     fuse on the boat's primary DC panel (e.g., labeled `INSTRUMENTS` or
+     `GATEWAY`).
+   * A pre-assembled, potted IP67 marine 12V-to-5V step-down module (e.g. with
+     bare wire outputs or an integrated USB-C pigtail) offers robust vibration
+     and moisture resistance.
+   * *Advantages:* Contributes **zero load** to the NMEA 2000 bus ($\text{LEN}
+     = 0$) and allows power cycling independently of navigation instruments.
+     Because the CAN transceiver (CA-IS3050G / ISO1050) provides galvanic
+     isolation, powering from the house battery panel introduces no ground
+     loops onto the N2K bus. The N2K spur red wire (+12V) is simply capped and
+     left disconnected.
+
+#### Dual-Power Backfeed Hazard: USB-C vs. Grove / External 5V Rail
+
+A critical electrical hazard arises when connecting a development computer via
+USB-C while the controller is simultaneously powered from an external 5V source
+(whether derived from the 12V panel or from the N2K bus through a buck
+converter, Grove port, or 5V header pin):
+
+> [!CAUTION] **No Power Multiplexing / Ideal Diode on Atom Lite & Dev Boards:**
+> The 5V pin on the Grove connector, the 5V header pin, and the USB-C VBUS
+> power pin are directly tied to a common `5V` power net without diode
+> isolation. If external 5V power is active while a computer is plugged into
+> the USB-C port, any slight voltage potential difference (e.g.
+> $5.20\,\text{V}$ from the buck converter vs. $5.00\,\text{V}$ from the PC)
+> will cause high reverse currents to **backfeed** directly into the computer's
+> USB host controller. This can trip USB port overcurrent protection or destroy
+> host motherboard ports.
+
+To safely develop, flash firmware, or monitor serial logs without removing
+hardware:
+
+* **Method 1 (Power-Cut USB Cable / Data Blocker):** Use a USB-C data cable
+  with the VBUS (+5V) wire severed or covered with tape, or insert a "data-only
+  USB blocker." Data lines (D+/D-) and ground remain intact for flashing, while
+  5V power is supplied exclusively by the boat system.
+* **Method 2 (Panel Breaker Isolation):** When using a 12V distribution panel
+  feed, switch **OFF** the gateway circuit breaker before plugging in a normal
+  laptop USB-C cable. The laptop safely powers the controller and Grove sensors
+  during testing. Disconnect the USB-C cable before turning the breaker back
+  ON.
+* **Method 3 (Inline Schottky Diode):** Install an inline low-drop Schottky
+  diode (e.g., 1N5819 or SS34) on the +5V output line from the buck converter.
+  The diode blocks reverse current from flowing back into the converter when
+  USB-C is plugged in, while incurring an insignificant voltage drop ($\sim
+  0.25\,\text{V}$) during normal operation.
 
 ### 1.4 Auxiliary Sensor Protocols: I2C and 1-Wire
 
