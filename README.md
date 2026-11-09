@@ -6,6 +6,10 @@ electronics for the Seagram sailing yacht.
 ## Directory Structure
 
 - `docs/`: Technical protocol specifications and architectural documentation.
+  - [`esp32-n2k-wifi-gateway`](docs/esp32-n2k-wifi-gateway.md): DIY ESP32 NMEA
+    2000 to Wi-Fi/Ethernet gateway specification (alternative to YDWG-02), with
+    I2C environmental/motion and 1-Wire engine monitoring sensors across
+    discrete, M5Stack (PortABC + CANBus Unit), and HALMET hardware options.
   - [`nmea2000`](docs/nmea2000.md): NMEA 2000 (IEC 61162-3) protocol
     specification, CAN bus physical layer, ISO 11898-2 differential signaling,
     SAE J1939 framing, PGN datagrams, dynamic address arbitration, and LEN
@@ -17,6 +21,9 @@ electronics for the Seagram sailing yacht.
   - [`E22158`](parts/E22158.md): Raymarine SeaTalk1 to SeaTalkng Converter Kit
     (bridging SeaTalk1 instruments/autopilot to N2K, OpenPlotter via YD
     gateways).
+  - [`HALMET`](parts/HALMET.md): Hat Labs Marine Engine & Tank Interface
+    (ESP32-based N2K gateway, 6–32V power with polyfuse protection, isolated
+    analog/digital inputs, and KUS resistive tank level sensor integration).
   - [`iTC-5`](parts/iTC-5.md): Raymarine iTC-5 Instrument Transducer Converter
     (includes sensor wiring requirements and S2G course computer caveats).
   - [`M81105`](parts/M81105.md): Raymarine Rotary Rudder Reference Transducer
