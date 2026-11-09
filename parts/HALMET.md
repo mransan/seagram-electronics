@@ -10,19 +10,19 @@
 * **description (50 words max):** HALMET (Hat Labs Marine Engine & Tank
   Interface) is an open-source ESP32 development board designed for boat
   engine, tank, and network monitoring. It features native NMEA 2000 CAN,
-  isolated analog and digital inputs, wide 6–32V power input, and Wi-Fi
+  isolated analog and digital inputs, wide 5–32V power input, and Wi-Fi
   telemetry streaming.
 
 # Technical Specifications
 
 * **Microcontroller:** Espressif ESP32-WROOM-32E (Dual-core Xtensa 32-bit LX6 @
-  240 MHz, 520 KB SRAM, 4 MB Flash)
+  240 MHz, 520 KB SRAM, 16 MB Flash memory)
 * **Wireless Connectivity:** 2.4 GHz Wi-Fi (802.11 b/g/n) and Bluetooth v4.2 /
   BLE
-* **Input Supply Voltage:** 6 V to 32 V DC (compatible with nominal 12 V and 24
-  V boat electrical systems)
-* **Integrated Buck Power Supply:** 5 V DC switching regulator delivering up to
-  2 A continuous output
+* **Input Supply Voltage:** 5 V to 32 V DC (tolerant of nominal 12 V and 24 V
+  marine electrical systems; accepts 6–32 V per hardware design specs)
+* **Integrated Buck Power Supply:** High-efficiency switching regulator
+  delivering up to 2 A continuous output current
 * **Power Consumption:** Typical ~90 mA at 12 V DC (~1.1 W) with active Wi-Fi
 * **Power Protection:**
   * 500 mA self-resetting polyfuse (PolySwitch)
@@ -30,33 +30,50 @@
   * Transient Voltage Suppressor (TVS) overvoltage and ESD diodes
   * Two-stage electromagnetic noise filtering
 * **Galvanic Isolation:** Galvanic isolation barrier between sensor inputs
-  (analog/digital inputs) and the core ESP32/power domain using digital
-  isolators and an isolated DC/DC converter
+  (analog inputs via ADS1115 and digital inputs D1–D4) and the core ESP32 /
+  power domain using digital isolators (for I2C and digital inputs) and an
+  isolated DC/DC converter
 * **Analog Inputs (A1–A4):**
   * 4 channels via 2-pin pluggable terminal blocks (Phoenix MC 3.81 mm)
-  * 16-bit Texas Instruments ADS1115 ADC
-  * Input voltage tolerance: -32 V to +32 V DC; active measurement range: 0 to
-    33 V DC
-  * Input low-pass filtering: 160 Hz cutoff frequency
+  * 16-bit Texas Instruments ADS1115 ADC (on the isolated section)
+  * Active measurement range: 0 to 33 V DC; voltage tolerance: -32 V to +32 V
+    DC
+  * Built-in low-pass filtering: 160 Hz cutoff frequency
   * Constant-Current Source (CCS): Selectable 10 mA constant-current excitation
     per channel via onboard jumper pins (for 0–300 Ω resistive sensors)
+  * Optional low-pass filtering: Solder jumpers on the bottom side can engage
+    an additional 2.3 kHz low-pass filter
+  * ADS1115 I2C address selection solder jumpers on the bottom side
 * **Digital Inputs (D1–D4):**
   * 4 channels via 2-pin pluggable terminal blocks (Phoenix MC 3.81 mm)
-  * Voltage tolerance: -32 V to +32 V DC with Schmitt triggers (~1.55 V logic
-    threshold)
+  * ESP32 pin mappings: D1 (GPIO 23), D2 (GPIO 25), D3 (GPIO 27), D4 (GPIO 26)
+  * Voltage tolerance: -32 V to +32 V DC
+  * Schmitt trigger input buffers: threshold voltage ~1.55 V with ~0.7 V
+    hysteresis
+  * Configurable pull-up / pull-down: Solder jumpers on the bottom side allow
+    enabling internal 100 kΩ pull-up or pull-down resistors per channel
   * Optimized for engine tachometers (alternator W-terminal), alarm contacts,
     and flow meters
 * **CAN / NMEA 2000 Interface:**
   * 4-pin pluggable terminal block (Phoenix MC 3.81 mm: V+, V-, CAN_H, CAN_L)
   * Hardware transceiver tied to ESP32 TWAI (CAN TX: GPIO 19, CAN RX: GPIO 18)
-  * Activity status LEDs for RX and TX
-  * Selectable 120 Ω bus termination solder jumper (disabled by default)
+  * Dedicated activity status LEDs for RX and TX CAN bus traffic
+  * Selectable 120 Ω bus termination solder jumper (disabled by default; do not
+    enable on a terminated NMEA 2000 backbone)
+* **Status LEDs and Controls:**
+  * Red power LED (illuminates when 3.3V rail is active)
+  * Blue user-programmable LED (GPIO 2)
+  * Reset button
+  * Boot / download button (GPIO 0)
 * **Peripheral Expansion:**
   * I2C: 4-pin SparkFun Qwiic / STEMMA QT connector and 4-pin 2.54 mm header
     (SDA: GPIO 21, SCL: GPIO 22)
-  * 1-Wire: 3-pin 2.54 mm header (DQ: GPIO 4) with onboard pull-up resistor and
-    ESD protection
-  * General GPIO: 2x10 pin 2.54 mm header breaking out 13 unused GPIOs / JTAG
+  * 1-Wire: 3-pin 2.54 mm header footprint (DQ: GPIO 4 with onboard pull-up and
+    ESD protection; unpopulated by default to prevent enclosure interference)
+  * Isolated Power Output: Header offering isolated 3V3 and GND rails
+  * General GPIO / JTAG: 2x10 pin 2.54 mm header breaking out 13 unused GPIOs
+* **Enclosure Compatibility:** Form factor fits standard 100 × 68 × 50 mm
+  waterproof enclosures (same footprint as Hat Labs SH-ESP32 / SH-RPi boxes)
 
 # Power Architecture and NMEA 2000 Isolation
 
@@ -129,6 +146,85 @@ Resistive float senders are the marine standard for monitoring water, waste,
 and fuel levels. HALMET supports direct interfacing with these sensors using
 its analog inputs (A1–A4) configured with the onboard Constant-Current Source
 (CCS).
+
+## Boat Physical Installation & Sourcing Analysis (Seagram Tanks)
+
+### Vessel Tank Context
+* **Tanks:** Two onboard fresh water tanks.
+* **Tank Material:** Molded polyethylene / plastic construction, allowing
+  direct drilling and self-tapping / machine screw fastening on flat top
+  surfaces if needed.
+* **Inspection / Sensor Port:** Each tank is fitted with a female **1.5" NPT
+  (National Pipe Taper)** threaded bung intended for fluid level senders.
+* **Mounting Approaches:**
+  1. **Threaded Direct Mount:** Screw a 1.5" NPT threaded sender directly into
+     the existing female bung (no drilling or tank cutting).
+  2. **SAE 5-Hole Flange Surface Mount:** On a plastic tank, an SAE 5-hole
+     flange can either be installed over a 1.5" NPT-to-flange adapter, or
+     screwed directly into the plastic tank surface (using a flat area, a hole
+     saw cutout for the float stem, the 5-hole gasket, and 5 stainless screws).
+
+### Evaluation of Sensor Sourcing Options
+
+#### Option 1: USA (KUS S5U Series via Amazon)
+* **Candidate Links:**
+  * [KUS USA SSS / S5U Fuel & Water Level Sensor (Amazon B00Y831WPM)](
+    https://www.amazon.com/KUS-USA-Water-Level-Sensor/dp/B00Y831WPM)
+  * [KUS S5U Threaded Water Level Sensor (Amazon B0CHK2M85K)](
+    https://www.amazon.com/dp/B0CHK2M85K)
+* **Mechanical Fit:** **Direct Fit (Recommended)**. The KUS S5U series features
+  a male 1.5" NPT threaded body that screws directly into the tank's 1.5" NPT
+  bung without requiring any adapter flange, drilling, or screws.
+* **Electrical Compatibility:** Typically supplied in the American standard
+  (240–33 Ω). Fully compatible with HALMET's 10 mA CCS input (operating range
+  0.33 V to 2.40 V, well below HALMET's 300 Ω / 3.00 V ceiling).
+* **Verdict:** **Works directly into the existing bung without extra work.**
+
+#### Option 2: France (SVB Marine KUS Sensor + Mounting Flange)
+* **Candidate Links:**
+  * [SVB Marine KUS Capteur Eau/Carburant](
+    https://www.svb-marine.fr/fr/kus-capteurs-eau-carburant.html)
+  * [SVB Marine KUS Bride de Montage](
+    https://www.svb-marine.fr/fr/kus-bride-de-montage-pour-jauge-de-reservoir-a-eau-ou-carburant.html)
+* **Mechanical Fit:** **Works via Surface Mount onto Plastic Tank**.
+  * European SVB KUS sensors use **1-1/4" BSP (British Standard Pipe)** male
+    threads.
+  * The SVB mounting flange is a 5-hole collar with internal 1-1/4" BSP
+    threads. Because the tank is plastic, this 5-hole flange can be fastened
+    directly onto a flat section of the plastic tank top using the supplied
+    gasket and 5 stainless self-tapping or machine screws (after drilling a
+    center hole for the sender stem). The 1-1/4" BSP sender then screws cleanly
+    into the flange.
+  * Alternatively, if installing strictly into the existing 1.5" NPT bung
+    without drilling the tank, a **1.5" NPT male to 1-1/4" BSP female bushing
+    adapter** is required.
+* **Electrical Compatibility:** Standard European 0–190 Ω curve (0.00 V to 1.90
+  V @ 10 mA). Fully compatible with HALMET.
+* **Verdict:** **Works directly by screwing the 5-hole flange into the plastic
+  tank, or into the bung with a 1.5" NPT to 1-1/4" BSP bushing.**
+
+#### Option 3: China (AliExpress 1.5" NPT or SAE 5-Hole Senders)
+* **Candidate Links:**
+  * [AliExpress Marine Fuel / Water Level Sender](
+    https://fr.aliexpress.com/item/1005012387264252.html)
+* **Mechanical Fit:** **Works via Bung or Direct Plastic Screw Mount**.
+  * If ordered with the **1.5" NPT threaded mount**, it screws directly into
+    the existing tank bung (identical to Option 1).
+  * If ordered with the **SAE 5-hole flange**, it can be screwed directly into
+    the plastic tank top with 5 self-tapping screws and the supplied rubber
+    gasket.
+* **Electrical Compatibility:** Available in both 0–190 Ω (EU) and 240–33 Ω
+  (US). Both work natively with HALMET's CCS jumper enabled.
+* **Verdict:** **Works directly either by threading into the 1.5" NPT bung or
+  by screwing the SAE 5-hole pattern into the plastic tank.**
+
+### Comparison Summary for Seagram Installation
+
+| Option | Vendor / Source | Mechanical Mounting Method | Extra Adapters Needed? | HALMET Electrical Fit |
+| :--- | :--- | :--- | :--- | :--- |
+| **Option 1 (USA)** | Amazon (KUS S5U) | 1.5" NPT thread into existing bung | **None** (direct screw-in) | **100% (240–33 Ω)** |
+| **Option 2 (France)** | SVB Marine | Flange screwed into plastic tank | **None** (if screwed to tank) | **100% (0–190 Ω)** |
+| **Option 3 (China)** | AliExpress | 1.5" NPT bung OR SAE 5-hole flange | **None** | **100% (EU or US)** |
 
 ```
                       HALMET Resistive Measurement Circuit
