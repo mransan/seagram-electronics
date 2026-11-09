@@ -231,38 +231,57 @@ dynamics are as follows:
    (R_{\text{wire\_out}} + R_{\text{sensor}} + R_{\text{wire\_return}})$$
    $$V_{\text{measured}} = 0.010\,\text{A} \times (R_{\text{sensor}} + 2 \times
    R_{\text{wire}})$$
-2. **Wire Resistance Calculations for Marine Runs:** Consider standard marine
-   tinned copper wire runs typical of a 30 to 45 foot sailboat (round-trip
-   cable length of 10 to 30 meters):
-   * **16 AWG (1.31 mm²):** Resistance is ~13.2 mΩ/m (~0.0132 Ω/m).
-     * 10 m round trip (5 m run): $R_{\text{loop}} = 0.13\,\Omega \implies
-       \Delta V = 0.010 \times 0.13 = 1.3\,\text{mV}$
-     * 30 m round trip (15 m run): $R_{\text{loop}} = 0.40\,\Omega \implies
-       \Delta V = 0.010 \times 0.40 = 4.0\,\text{mV}$
-   * **18 AWG (0.82 mm²):** Resistance is ~21.0 mΩ/m (~0.0210 Ω/m).
-     * 10 m round trip (5 m run): $R_{\text{loop}} = 0.21\,\Omega \implies
-       \Delta V = 0.010 \times 0.21 = 2.1\,\text{mV}$
-     * 30 m round trip (15 m run): $R_{\text{loop}} = 0.63\,\Omega \implies
-       \Delta V = 0.010 \times 0.63 = 6.3\,\text{mV}$
-3. **Impact on Tank Measurement Accuracy:**
-   * For a European sensor (0–190 Ω, span of 190 Ω / 1.90 V):
-     * A 30 m 16 AWG loop adds $0.40\,\Omega$, creating an offset error of
-       $0.40 / 190 \approx 0.21\%$ of full scale.
-   * For an American sensor (240–33 Ω, span of 207 Ω / 2.07 V):
-     * A 30 m 16 AWG loop adds $0.40\,\Omega$, creating an offset error of
-       $0.40 / 207 \approx 0.19\%$ of full scale.
-   * Most reed-switch tank level senders (including KUS S3/SSS series) have
-     discrete magnetic reed steps spaced at 10 mm to 21 mm intervals, yielding
-     a physical resolution of 3% to 5%.
-   * **Conclusion:** The wire resistance error ($<0.25\%$) is more than an
-     order of magnitude smaller than the sensor's physical step resolution.
-     Therefore, **wire length and voltage drop do not materially affect
-     measurement accuracy** on typical boat installations when using 16 or 18
-     AWG marine wire.
-4. **Zero-Offset Calibration in Software:** If absolute precision is desired,
-   the constant wire resistance offset can be calibrated out completely in
-   software by performing a 2-point calibration (empty and full) with the tank
-   in place.
+2. **Target Scenario Analysis (4 m One-Way Run / 22 AWG):**
+   * **Wire Gauge & Physical Characteristics:** 22 AWG tinned copper marine
+     wire (approx 0.33 mm² conductor cross-section) has a typical resistance of
+     ~53.0 mΩ/m (~0.053 Ω/m / 16.14 Ω per 1,000 ft at 20°C).
+   * **Round-Trip Length:** A 4 m one-way run produces an 8 m total loop
+     length: $$R_{\text{loop}} = 8\,\text{m} \times 0.053\,\Omega/\text{m}
+     \approx 0.424\,\Omega$$
+   * **Induced Voltage Drop:** At a constant current of 10 mA: $$\Delta
+     V_{\text{wire}} = 0.010\,\text{A} \times 0.424\,\Omega = 4.24\,\text{mV}$$
+3. **Impact on Tank Level Accuracy:**
+   * **European (EU) Sensor Standard (0–190 Ω, 190 Ω span / 1.90 V span):**
+     * An additional $0.424\,\Omega$ loop resistance creates an offset error
+       of: $$\text{Error} = \frac{0.424\,\Omega}{190\,\Omega} \times 100\%
+       \approx 0.22\%$$
+   * **American (US) Sensor Standard (240–33 Ω, 207 Ω span / 2.07 V span):**
+     * An additional $0.424\,\Omega$ loop resistance creates an offset error
+       of: $$\text{Error} = \frac{0.424\,\Omega}{207\,\Omega} \times 100\%
+       \approx 0.20\%$$
+   * **Comparison with Sensor Physical Resolution:**
+     * Marine float level senders using magnetic reed switches (such as KUS S3
+       or SSS series) have discrete float reed positions typically spaced
+       between 10 mm and 21 mm apart.
+     * On a standard tank sender, each discrete step corresponds to roughly 3%
+       to 5% of tank volume.
+     * The induced electrical error from the 22 AWG wire run ($\approx 0.21\%$)
+       is approximately 15 to 25 times smaller than the sensor's physical step
+       resolution.
+4. **General Wire Gauge Comparison Table (for 4 m One-Way / 8 m Loop):**
+
+| Wire Gauge | Conductor Area | Loop Resistance (8 m) | Voltage Drop (10 mA) | Error (EU 0–190 Ω) | Error (US 240–33 Ω) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **22 AWG** | 0.33 mm² | ~0.42 Ω | 4.2 mV | ~0.22% | ~0.20% |
+| **20 AWG** | 0.52 mm² | ~0.26 Ω | 2.6 mV | ~0.14% | ~0.13% |
+| **18 AWG** | 0.82 mm² | ~0.17 Ω | 1.7 mV | ~0.09% | ~0.08% |
+| **16 AWG** | 1.31 mm² | ~0.11 Ω | 1.1 mV | ~0.06% | ~0.05% |
+
+5. **Conclusion & Recommendations for 22 AWG:**
+   * **Electrical Suitability:** 22 AWG is electrically excellent for this
+     application. The voltage drop ($\approx 4.2\,\text{mV}$) and resistance
+     offset ($0.42\,\Omega$) are negligible and well within acceptable
+     measurement tolerances.
+   * **Mechanical Considerations:** In marine environments, ABYC standards
+     generally suggest 16 or 18 AWG for unsheathed wiring due to mechanical
+     pull strength and vibration resistance. When using 22 AWG to reduce weight
+     and cost, use a multi-conductor shielded or sheathed cable (e.g.,
+     marine-rated shielded paired cable) with proper strain relief and secure
+     clipping to prevent mechanical fatigue or snagging.
+6. **Zero-Offset Calibration in Software:** If absolute precision is desired,
+   the constant $0.42\,\Omega$ wire offset can be completely eliminated in
+   software by performing a 2-point calibration (empty and full) inside SensESP
+   or custom gateway firmware.
 
 # Integration with External Systems
 
