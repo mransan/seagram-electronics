@@ -151,7 +151,7 @@ its analog inputs (A1–A4) configured with the onboard Constant-Current Source
                +-------------------+         |
                |  KUS Tank Sender  |         |
                |  (e.g., S3 / SSS) |         |
-               |  Variable R_tank  |         |
+               | Variable R(tank)  |         |
                +---------+---------+         |
                          |                   |
                          | (Wire Lead 2)     |
@@ -228,7 +228,7 @@ dynamics are as follows:
 1. **Constant Current Through Series Loop:** Because HALMET forces a constant
    10 mA through the entire current loop, exactly 10 mA flows through the lead
    wires and the tank sender in series: $$V_{\text{measured}} = I \times
-   (R_{\text{wire\_out}} + R_{\text{sensor}} + R_{\text{wire\_return}})$$
+   (R_{\text{wire,out}} + R_{\text{sensor}} + R_{\text{wire,return}})$$
    $$V_{\text{measured}} = 0.010\,\text{A} \times (R_{\text{sensor}} + 2 \times
    R_{\text{wire}})$$
 2. **Target Scenario Analysis (4 m One-Way Run / 22 AWG):**
