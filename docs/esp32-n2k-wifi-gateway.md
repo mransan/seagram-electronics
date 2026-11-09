@@ -232,9 +232,10 @@ builders can construct the gateway using one of three architectural approaches:
 2. **M5Stack Modular Ecosystem:** Atom Lite controller docked onto an Atomic
    PortABC base with an external isolated CANBus Unit, offering three
    dedicated, keyed Grove ports for plug-and-play wiring.
-3. **Marine Integrated Board (SH-ESP32):** Commercial-grade open-source marine
-   PCB featuring integrated isolated CAN, automotive-grade 8–32V power supply,
-   TVS surge suppression, and built-in screw terminals for I2C and 1-Wire.
+3. **Marine Integrated Board (HALMET):** Commercial-grade open-source marine
+   PCB featuring an integrated CAN interface, wide 6–32V power supply with
+   onboard 500 mA fuse, surge protection, TVS diodes, and built-in terminals
+   for analog/resistive senders, digital inputs, I2C, and 1-Wire.
 
 ---
 
@@ -395,80 +396,112 @@ header conflicts and maintaining a sealed, professional installation.
 
 ---
 
-### 2.3 Marine Integrated Board: SH-ESP32
+### 2.3 Marine Integrated Board: HALMET
 
-The **Sailor Hat with ESP32 (SH-ESP32)** by Hat Labs is a purpose-built, open-
-source hardware marine development board. It incorporates galvanic CAN
-isolation, transient TVS overvoltage suppression, an automotive-grade
-wide-input switching buck regulator, and pluggable screw terminals into a
-single compact board designed for marine electrical panels.
+The **HALMET (Hat Labs Marine Engine & Tank Interface)** by Hat Labs is a
+purpose-built, open-source hardware marine development board designed for
+engine, tank, and network monitoring. It incorporates a native CAN transceiver
+for NMEA 2000, galvanic isolation between the sensor inputs and the ESP32 core,
+transient TVS overvoltage suppression, an integrated 6–32V switching buck
+regulator (delivering up to 2 A at 5V), an onboard 500 mA self-resetting fuse,
+reverse polarity protection, and pluggable screw terminal blocks designed for
+marine electrical panels.
 
 ```
 +--------------------------------------------------------------------------+
-|                  Sailor Hat with ESP32 (SH-ESP32) Architecture           |
+|                        HALMET Board Architecture                         |
 |                                                                          |
-|   [ N2K 12V / CAN ]          [ DC Power In ]           [ Sensors ]       |
-|    NET-H, NET-L, GND          8V - 32V Input          I2C & 1-Wire       |
+|   [ N2K / CAN Bus ]          [ DC Power In ]           [ Sensors ]       |
+|    NET-H, NET-L, GND          6V - 32V Input          I2C, 1-Wire,       |
+|   (4-pin Phoenix MC)        (Via N2K or Ext)       Analog, & Digital     |
 |           |                         |                       |            |
 |           v                         v                       v            |
 |   +---------------+         +---------------+       +---------------+    |
-|   | Galvanically  |         | 8-32V to 5V   |       | Protected     |    |
-|   | Isolated CAN  |         | Auto Buck     |       | Qwiic / Screw |    |
-|   | Transceiver   |         | Converter     |       | Terminals     |    |
+|   | CAN 2.0 /     |         | 6-32V to 5V   |       | Galvanically  |    |
+|   | N2K Transceiver         | Switching Buck|       | Isolated ADC  |    |
+|   | (TVS protected)|        | (2A, Polyfuse)|       | & Dig Inputs  |    |
 |   +-------+-------+         +-------+-------+       +-------+-------+    |
 |           |                         |                       |            |
-|       (GPIO 32/34)                (5V)                (GPIO 16/17, 4)    |
+|      (GPIO 18/19)                 (5V)               (GPIO 21/22, 4)     |
 |           |                         |                       |            |
 |           +-------------------------+-----------------------+            |
 |                                     |                                    |
 |                                     v                                    |
 |                   +-----------------------------------+                  |
-|                   | ESP32-WROOM-32 Controller Module  |                  |
+|                   | ESP32-WROOM-32E Controller Module |                  |
 |                   |  - 2.4 GHz Wi-Fi / Bluetooth LE   |                  |
 |                   |  - Dual-core Xtensa 240 MHz MCU   |                  |
 |                   +-----------------------------------+                  |
 +--------------------------------------------------------------------------+
 ```
 
-#### Bill of Materials (SH-ESP32)
+#### Bill of Materials (HALMET)
 
 | Component | Part Description | Approx Price (USD) | Function & Sourcing Links |
 | :--- | :--- | :--- | :--- |
-| **Integrated Board** | [Sailor Hat with ESP32 (SH-ESP32)][ref-sh-esp32] | \$38.00 – \$55.00 | Marine-grade ESP32 board with isolated CAN, 8–32V buck supply, opto-inputs |
+| **Integrated Board** | [Hat Labs HALMET][ref-halmet] | €40.16 / \$44.00 | Marine-grade ESP32 board with CAN, 6–32V buck supply, isolated ADC/inputs |
 | **Spur Cable** | NMEA 2000 Micro-C Drop Cable (1 m) | \$12.00 – \$18.00 | Micro-C male connector to bare pigtail wires |
-| **Inline Fuse** | 0.5A fast-blow inline fuse holder | \$1.50 – \$3.00 | Protects backbone wiring against short |
-| **Environmental Sensor** | SparkFun / Adafruit BME280 Qwiic | \$8.00 – \$14.00 | Plugs directly into SH-ESP32 Qwiic/I2C connector |
+| **Inline Fuse (Optional)** | 0.5A fast-blow inline fuse holder | \$1.50 – \$3.00 | Optional backup; HALMET includes onboard 500 mA polyfuse |
+| **Environmental Sensor** | SparkFun / Adafruit BME280 Qwiic | \$8.00 – \$14.00 | Plugs directly into HALMET Qwiic/I2C connector |
 | **Attitude / IMU Sensor** | Adafruit 9-DOF IMU (ICM-20948 / BNO085) | \$12.00 – \$22.00 | Daisy-chains onto the Qwiic I2C bus |
-| **Engine Temp Probes** | DS18B20 Waterproof Probes (x2) | \$5.00 – \$8.00 | Plugs directly into the SH-ESP32 1-Wire terminals |
-| **Total (SH-ESP32)** | | **\$76.50 – \$120.00** | Professional marine grade, TVS protection, screw terminals |
+| **Engine Temp Probes** | DS18B20 Waterproof Probes (x2) | \$5.00 – \$8.00 | Plugs directly into HALMET 1-Wire 3-pin header |
+| **Total (HALMET)** | | **\$70.50 – \$110.00** | Professional marine grade, TVS protection, pluggable screw terminals |
 
 #### Point-to-Point Wiring Description
 
 1. **NMEA 2000 Spur Cable Connections:**
-   * **Red Wire (NET-S / +12V DC):** Connects to **Inline Fuse (0.5A)** input;
-     the fuse output connects to **SH-ESP32 VIN Screw Terminal** (accepts 8V to
-     32V DC).
-   * **Black Wire (NET-C / 0V Ground):** Connects to **SH-ESP32 Power GND Screw
-     Terminal** and **CAN GND Terminal**.
-   * **White Wire (NET-H / CAN High):** Connects to **SH-ESP32 CAN_H
-     Terminal**.
-   * **Blue Wire (NET-L / CAN Low):** Connects to **SH-ESP32 CAN_L Terminal**.
-   * **Bare Shield Wire (Drain):** Left unconnected (floating) at the device;
-     grounded exclusively at the central N2K power tap.
-2. **I2C Sensor Bus Connections (BME280 & IMU):**
+   * Unlike bare ESP32 dev boards or older DIY setups that require external
+     step-down buck regulators and discrete inline fuses, HALMET performs power
+     transformation directly onboard. Its wide-range 6–32V DC switching buck
+     regulator steps the incoming NMEA 2000 12V DC power down to 5V DC
+     internally. Additionally, HALMET includes an integrated 500 mA
+     self-resetting polyfuse, reverse polarity protection diode, TVS
+     overvoltage/ESD suppression diodes, and two-stage noise filtering.
+   * Wiring to HALMET's dedicated 4-pin Phoenix MC 3.81 mm pluggable terminal
+     block:
+     * **Red Wire (NET-S / +12V DC):** Connects to **Terminal Pin 1 (NET-S /
+       V+)**. Accepts 6V to 32V DC directly from the N2K backbone.
+     * **Black Wire (NET-C / 0V Ground):** Connects to **Terminal Pin 2 (NET-C
+       / V-)**.
+     * **White Wire (NET-H / CAN High):** Connects to **Terminal Pin 3 (CAN_H /
+       NET-H)**.
+     * **Blue Wire (NET-L / CAN Low):** Connects to **Terminal Pin 4 (CAN_L /
+       NET-L)**.
+     * **Bare Shield Wire (Drain):** Left unconnected (floating) at the device;
+       grounded exclusively at the single central N2K power tap to prevent
+       ground loop currents.
+2. **Power Isolation & Ground Loop Architecture:**
+   * **N2K Power Verification:** HALMET's onboard switching regulator safely
+     converts the N2K 12V rail to 5V logic power for the ESP32.
+   * **Sensor Isolation Barrier:** HALMET implements galvanic isolation between
+     its analog/digital input section and the core ESP32/power domain via
+     digital isolators and an isolated DC/DC converter.
+   * **Powering via N2K Rules:** Because the board connects to external systems
+     over Wi-Fi (non-galvanic wireless link) or optically/galvanically isolated
+     inputs, powering the board directly from the NMEA 2000 backbone is fully
+     compliant with NMEA 2000 rules. Per Hat Labs design guidelines, powering
+     via N2K is valid as long as no unisolated external galvanic connections
+     (such as unisolated USB to a mains-powered computer) create a ground path
+     bypassing the N2K ground tap.
+3. **I2C Sensor Bus Connections (BME280 & IMU):**
    * Connects via standard SparkFun Qwiic (or Adafruit STEMMA QT) 4-pin JST-SH
-     cable directly to the **SH-ESP32 Qwiic Port** (or 2.54 mm screw header):
+     cable directly to the **HALMET Qwiic Port** (or 4-pin 2.54 mm header):
      * Pin 1 (GND): Ground.
      * Pin 2 (3V3): 3.3V Power.
-     * Pin 3 (SDA): Hardwired internally on SH-ESP32 to **GPIO 16**.
-     * Pin 4 (SCL): Hardwired internally on SH-ESP32 to **GPIO 17**.
-3. **1-Wire Temperature Sensor Bus Connections (DS18B20 Probes):**
-   * Connects directly to the dedicated 3-pin 1-Wire header on the SH-ESP32:
+     * Pin 3 (SDA): Hardwired internally on HALMET to **GPIO 21**.
+     * Pin 4 (SCL): Hardwired internally on HALMET to **GPIO 22**.
+4. **1-Wire Temperature Sensor Bus Connections (DS18B20 Probes):**
+   * Connects directly to the dedicated 3-pin 1-Wire header on HALMET:
      * **VDD (+3.3V):** Connects to **DS18B20 Red Wires**.
      * **GND:** Connects to **DS18B20 Black Wires**.
      * **DQ (Data):** Connects to **DS18B20 Yellow Wires**. Hardwired
        internally to **GPIO 4** with an integrated onboard pull-up resistor and
-       RClamp ESD surge protection.
+       ESD transient protection.
+5. **Auxiliary Analog & Resistive Sensor Inputs (Optional):**
+   * HALMET provides four 2-pin pluggable screw terminal blocks (A1–A4)
+     connected to an onboard 16-bit ADS1115 ADC. These can directly read
+     resistive tank level senders (e.g. KUS fuel/water senders) using HALMET's
+     selectable 10 mA constant-current source (CCS jumpers).
 
 ---
 
@@ -766,8 +799,8 @@ tested firmware, reference designs, and peer troubleshooting networks:
 * [M5Stack IMU Unit][ref-m5stack-imu]: 6-axis / 9-axis attitude and motion
   sensor module.
 * [M5Stack Grove Hub][ref-m5stack-hub]: Passive 1-to-3 I2C Grove splitter.
-* [Sailor Hat with ESP32 (SH-ESP32)][ref-sh-esp32]: Open-source marine ESP32
-  development board with isolated CAN and wide-input power supply.
+* [Hat Labs HALMET][ref-halmet]: Open-source marine ESP32 development board
+  with CAN, isolated ADC/inputs, and wide-input power supply.
 * [Timo Lappalainen NMEA2000 Library on GitHub][ref-lappalainen-n2k]: Primary
   C++ library for N2K protocol handling on microcontrollers.
 * [Timo Lappalainen NMEA2000_esp32 Hardware Driver][ref-lappalainen-esp32]:
@@ -809,8 +842,8 @@ https://docs.m5stack.com/en/atom/atomic_portabc [ref-m5stack-canunit]:
 https://docs.m5stack.com/en/unit/can [ref-m5stack-env4]:
 https://docs.m5stack.com/en/unit/env4 [ref-m5stack-imu]:
 https://docs.m5stack.com/en/unit/imu [ref-m5stack-hub]:
-https://docs.m5stack.com/en/unit/hub [ref-sh-esp32]:
-https://hatlabs.github.io/sh-esp32/ [ref-lappalainen-n2k]:
+https://docs.m5stack.com/en/unit/hub [ref-halmet]:
+https://shop.hatlabs.fi/products/halmet [ref-lappalainen-n2k]:
 https://github.com/ttlappalainen/NMEA2000 [ref-lappalainen-esp32]:
 https://github.com/ttlappalainen/NMEA2000_esp32 [ref-lappalainen-0183]:
 https://github.com/ttlappalainen/NMEA0183 [ref-ak-homberger]:
