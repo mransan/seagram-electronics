@@ -151,11 +151,18 @@ its analog inputs (A1–A4) configured with the onboard Constant-Current Source
 
 ### Vessel Tank Context
 * **Tanks:** Two onboard fresh water tanks.
+* **Tank Material:** Molded polyethylene / plastic construction, allowing
+  direct drilling and self-tapping / machine screw fastening on flat top
+  surfaces if needed.
 * **Inspection / Sensor Port:** Each tank is fitted with a female **1.5" NPT
-  (National Pipe Taper)** threaded port intended for fluid level senders.
-* **Sealing Principle:** 1.5" NPT is a tapered thread that seals via thread
-  interference and thread sealant (e.g. PTFE marine thread tape or Loctite 567
-  thread sealant).
+  (National Pipe Taper)** threaded bung intended for fluid level senders.
+* **Mounting Approaches:**
+  1. **Threaded Direct Mount:** Screw a 1.5" NPT threaded sender directly into
+     the existing female bung (no drilling or tank cutting).
+  2. **SAE 5-Hole Flange Surface Mount:** On a plastic tank, an SAE 5-hole
+     flange can either be installed over a 1.5" NPT-to-flange adapter, or
+     screwed directly into the plastic tank surface (using a flat area, a hole
+     saw cutout for the float stem, the 5-hole gasket, and 5 stainless screws).
 
 ### Evaluation of Sensor Sourcing Options
 
@@ -167,11 +174,11 @@ its analog inputs (A1–A4) configured with the onboard Constant-Current Source
     https://www.amazon.com/dp/B0CHK2M85K)
 * **Mechanical Fit:** **Direct Fit (Recommended)**. The KUS S5U series features
   a male 1.5" NPT threaded body that screws directly into the tank's 1.5" NPT
-  bung without requiring any adapter flange or drilling.
+  bung without requiring any adapter flange, drilling, or screws.
 * **Electrical Compatibility:** Typically supplied in the American standard
   (240–33 Ω). Fully compatible with HALMET's 10 mA CCS input (operating range
   0.33 V to 2.40 V, well below HALMET's 300 Ω / 3.00 V ceiling).
-* **Verdict:** **Works directly without extra adapters.**
+* **Verdict:** **Works directly into the existing bung without extra work.**
 
 #### Option 2: France (SVB Marine KUS Sensor + Mounting Flange)
 * **Candidate Links:**
@@ -179,45 +186,45 @@ its analog inputs (A1–A4) configured with the onboard Constant-Current Source
     https://www.svb-marine.fr/fr/kus-capteurs-eau-carburant.html)
   * [SVB Marine KUS Bride de Montage](
     https://www.svb-marine.fr/fr/kus-bride-de-montage-pour-jauge-de-reservoir-a-eau-ou-carburant.html)
-* **Mechanical Fit:** **Incompatible without an NPT-to-BSP adapter**.
+* **Mechanical Fit:** **Works via Surface Mount onto Plastic Tank**.
   * European SVB KUS sensors use **1-1/4" BSP (British Standard Pipe)** male
-    threads (approx 41.9 mm OD, 55° thread angle, parallel thread sealing with
-    a flat NBR gasket).
-  * The SVB mounting flange is a weld-in or bolt-on collar with internal 1-1/4"
-    BSP threads designed to be fastened onto a flat tank top with 5 sheet metal
-    screws. It cannot thread into a 1.5" NPT bung.
-  * A 1.5" NPT male thread (approx 48 mm OD, 60° taper) is physically larger
-    and has a different thread pitch than 1-1/4" BSP.
-  * *To make this option work:* You would need a **1.5" NPT male to 1-1/4" BSPP
-    female marine brass/stainless adapter bushing**.
+    threads.
+  * The SVB mounting flange is a 5-hole collar with internal 1-1/4" BSP
+    threads. Because the tank is plastic, this 5-hole flange can be fastened
+    directly onto a flat section of the plastic tank top using the supplied
+    gasket and 5 stainless self-tapping or machine screws (after drilling a
+    center hole for the sender stem). The 1-1/4" BSP sender then screws cleanly
+    into the flange.
+  * Alternatively, if installing strictly into the existing 1.5" NPT bung
+    without drilling the tank, a **1.5" NPT male to 1-1/4" BSP female bushing
+    adapter** is required.
 * **Electrical Compatibility:** Standard European 0–190 Ω curve (0.00 V to 1.90
   V @ 10 mA). Fully compatible with HALMET.
-* **Verdict:** **Electrically compatible, but mechanically incompatible unless
-  an external 1.5" NPT to 1-1/4" BSP adapter is added.**
+* **Verdict:** **Works directly by screwing the 5-hole flange into the plastic
+  tank, or into the bung with a 1.5" NPT to 1-1/4" BSP bushing.**
 
 #### Option 3: China (AliExpress 1.5" NPT or SAE 5-Hole Senders)
 * **Candidate Links:**
   * [AliExpress Marine Fuel / Water Level Sender](
     https://fr.aliexpress.com/item/1005012387264252.html)
-* **Mechanical Fit:** **Conditional on Ordering Variant**.
-  * If selected with the **1.5" NPT (or 1-1/2" NPT) threaded mount**, it screws
-    directly into the tank bung (identical to Option 1).
-  * If selected with the standard **SAE 5-hole flange**, it cannot screw into
-    the 1.5" NPT bung directly; it requires an adapter such as a **1.5" NPT
-    male to SAE 5-hole flange adapter** (e.g. Maretron TA-5H-1.5NPT or Boyd
-    Welding aluminum adapter).
+* **Mechanical Fit:** **Works via Bung or Direct Plastic Screw Mount**.
+  * If ordered with the **1.5" NPT threaded mount**, it screws directly into
+    the existing tank bung (identical to Option 1).
+  * If ordered with the **SAE 5-hole flange**, it can be screwed directly into
+    the plastic tank top with 5 self-tapping screws and the supplied rubber
+    gasket.
 * **Electrical Compatibility:** Available in both 0–190 Ω (EU) and 240–33 Ω
   (US). Both work natively with HALMET's CCS jumper enabled.
-* **Verdict:** **Works directly if and only if ordered with the 1.5" NPT
-  threaded mount variant; otherwise requires an SAE 5-hole adapter.**
+* **Verdict:** **Works directly either by threading into the 1.5" NPT bung or
+  by screwing the SAE 5-hole pattern into the plastic tank.**
 
 ### Comparison Summary for Seagram Installation
 
-| Option | Vendor / Source | Mechanical Interface | Additional Adapters Needed? | HALMET Electrical Fit |
+| Option | Vendor / Source | Mechanical Mounting Method | Extra Adapters Needed? | HALMET Electrical Fit |
 | :--- | :--- | :--- | :--- | :--- |
-| **Option 1 (USA)** | Amazon (KUS S5U) | 1.5" NPT male thread | **None** (direct screw-in) | **100% (240–33 Ω)** |
-| **Option 2 (France)** | SVB Marine | 1-1/4" BSP male thread | **Yes** (1.5" NPT to 1-1/4" BSP bushing) | **100% (0–190 Ω)** |
-| **Option 3 (China)** | AliExpress | 1.5" NPT (if selected) | **None** if 1.5" NPT; **Yes** if SAE 5-hole | **100% (EU or US)** |
+| **Option 1 (USA)** | Amazon (KUS S5U) | 1.5" NPT thread into existing bung | **None** (direct screw-in) | **100% (240–33 Ω)** |
+| **Option 2 (France)** | SVB Marine | Flange screwed into plastic tank | **None** (if screwed to tank) | **100% (0–190 Ω)** |
+| **Option 3 (China)** | AliExpress | 1.5" NPT bung OR SAE 5-hole flange | **None** | **100% (EU or US)** |
 
 ```
                       HALMET Resistive Measurement Circuit
