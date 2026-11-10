@@ -18,6 +18,8 @@ electronics for the Seagram sailing yacht.
     architecture, Wired-OR signaling, datagram structures, and N2K bridging.
 - `parts/`: Specifications and integration guides for hardware components and
   gateways.
+  - [`DPS368`](parts/DPS368.md): Infineon XENSIV™ DPS368 waterproof (IPx8)
+    digital barometric pressure and temperature sensor (I2C/SPI, RS 236-3647).
   - [`E22158`](parts/E22158.md): Raymarine SeaTalk1 to SeaTalkng Converter Kit
     (bridging SeaTalk1 instruments/autopilot to N2K, OpenPlotter via YD
     gateways).
