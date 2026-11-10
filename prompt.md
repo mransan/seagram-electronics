@@ -1,14 +1,8 @@
 # Goal 
 
-I believe there might be an error in
-@/Users/maximeransan/Documents/dev/seagram-electronics/parts/HALMET.md when
-listing the ESP32 chip specification. Please compare with
-https://docs.hatlabs.fi/halmet/hardware/.
-
-Additionally review the file content against all the documentation in
-https://docs.hatlabs.fi/halmet/ and it sub pages.
-
-
+I will have multiple I2C sensor connected to the single I2C port on the HAMLET
+boart (@parts/HALMET.md). How can I chain them together, do I need some sort of
+multiplexer to avoid bus message conflict.
 
 # Contribution guideline
 

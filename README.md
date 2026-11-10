@@ -22,8 +22,9 @@ electronics for the Seagram sailing yacht.
     (bridging SeaTalk1 instruments/autopilot to N2K, OpenPlotter via YD
     gateways).
   - [`HALMET`](parts/HALMET.md): Hat Labs Marine Engine & Tank Interface
-    (ESP32-based N2K gateway, 6–32V power with polyfuse protection, isolated
-    analog/digital inputs, and KUS resistive tank level sensor integration).
+    (ESP32-based N2K gateway, 5–32V power with polyfuse protection, isolated
+    analog/digital inputs, I2C Qwiic daisy-chaining, and KUS resistive tank
+    level sensor integration).
   - [`iTC-5`](parts/iTC-5.md): Raymarine iTC-5 Instrument Transducer Converter
     (includes sensor wiring requirements and S2G course computer caveats).
   - [`M81105`](parts/M81105.md): Raymarine Rotary Rudder Reference Transducer

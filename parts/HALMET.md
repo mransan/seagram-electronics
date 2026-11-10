@@ -381,6 +381,125 @@ dynamics are as follows:
 
 # Integration with External Systems
 
+## I2C Sensor Bus Expansion and Daisy-Chaining
+
+HALMET provides a single external I2C interface via both a **SparkFun Qwiic /
+STEMMA QT 4-pin JST-SH connector** and an adjacent 4-pin 2.54 mm pitch header
+(hardwired to ESP32 **GPIO 21 for SDA** and **GPIO 22 for SCL**).
+
+When connecting multiple I2C sensors (such as BME280 barometric pressure,
+ICM-20948/BNO085 9-DOF IMU, or compass modules), understanding bus topology,
+addressing, and multiplexing requirements is essential.
+
+```
+                      I2C Sensor Daisy-Chaining Topology
++--------------------------------------------------------------------------+
+|  HALMET Board                                                            |
+|  - ESP32 Core (SDA: GPIO 21, SCL: GPIO 22)                               |
+|  - ADS1115 ADC (Internal I2C Address: 0x48)                              |
+|  - [ Qwiic Port 1 ] (3.3V, GND, SDA, SCL)                                |
++---------+----------------------------------------------------------------+
+          | (Standard 4-pin Qwiic / STEMMA QT Cable)
+          v
++------------------------+
+| BME280 Environment    |
+| - Address: 0x76 (or 77)|
+| - [ Qwiic In  ] <------+
+| - [ Qwiic Out ] -------+ (Daisy-chain cable)
++------------------------+
+                         v
++------------------------+
+| ICM-20948 9-DOF IMU   |
+| - Address: 0x68 (or 69)|
+| - [ Qwiic In  ] <------+
+| - [ Qwiic Out ] -------+ (Daisy-chain to next sensor...)
++------------------------+
+```
+
+### 1. Can You Daisy-Chain I2C Sensors Directly?
+**Yes, absolutely.** I2C (Inter-Integrated Circuit) is an open-drain,
+shared-bus protocol designed specifically for multiple peripheral devices to
+share the same two communication wires (SDA and SCL) in parallel:
+* Most modern breakout sensors from SparkFun, Adafruit, and Pimoroni feature
+  **two Qwiic / STEMMA QT ports** directly on the sensor PCB.
+* You connect the first cable from HALMET's Qwiic port to the first sensor's
+  `IN` port, and a second short Qwiic cable from that sensor's `OUT` port to
+  the next sensor.
+* If a sensor does not have a second port, you can use a passive, unpowered I2C
+  splitter hub (such as the **SparkFun Qwiic MultiPort** or **M5Stack Grove
+  Hub** with JST-SH adapters) to branch the single port into multiple parallel
+  ports.
+
+### 2. Do You Need an I2C Multiplexer to Avoid Message Conflicts?
+**In most cases, NO multiplexer is required.**
+
+I2C bus arbitration and message dispatch are controlled digitally by unique
+**7-bit hardware addresses**:
+* Every I2C transaction begins with the microcontroller broadcasting the target
+  peripheral's 7-bit address.
+* Only the device matching that address acknowledges and responds. All other
+  sensors on the bus ignore the traffic.
+* Therefore, as long as each connected sensor has a **different I2C address**,
+  all sensors coexist cleanly on the same bus without data collisions or
+  conflicts.
+
+#### Standard Sensor Addresses in Marine Telemetry:
+* **HALMET Internal ADS1115 ADC:** Default address `0x48` (configurable to
+  `0x49`–`0x4B` via bottom solder jumpers).
+* **BME280 Environmental Sensor (Pressure/Temp/Humidity):** Address `0x76` (or
+  `0x77` via solder jumper).
+* **BMP388 Precision Barometer:** Address `0x77` (or `0x76`).
+* **ICM-20948 9-DOF IMU (Heeling/Pitch):** Address `0x68` (or `0x69`).
+* **BNO085 9-DOF Attitude Sensor:** Address `0x4A` (or `0x4B`).
+* **QMC5883L / HMC5883L Digital Compass:** Address `0x0D` or `0x1E`.
+
+Because these common marine sensors use completely distinct addresses, they can
+all be daisy-chained directly to HALMET without a multiplexer.
+
+### 3. When Is an I2C Multiplexer Actually Required?
+An active I2C multiplexer (such as the **TCA9548A 8-Channel I2C Multiplexer**,
+available in a SparkFun Qwiic or Adafruit STEMMA QT breakout) is **only
+necessary under two specific circumstances**:
+
+1. **Address Collision (Identical Sensors):**
+   * If you want to connect **two identical sensors** that share the same fixed
+     address (for example, two BME280 sensors located in the cabin and engine
+     room, both fixed at `0x76` with their alternate `0x77` already in use).
+   * The TCA9548A solves this by splitting the bus into 8 switched sub-channels
+     (Channel 0 to 7). The firmware selects which channel to talk to before
+     reading the sensor.
+2. **Conflict with HALMET's Internal ADS1115 (`0x48`):**
+   * If you attach an external sensor that is hardcoded to address `0x48` (or
+     whose alternate address is unavailable), it will collide with HALMET's
+     built-in ADS1115 ADC.
+   * *Resolution without multiplexer:* You can change HALMET's internal ADS1115
+     address from `0x48` to `0x49` by bridging the ADS1115 address solder
+     jumpers on the bottom of the HALMET PCB.
+   * *Resolution with multiplexer:* Put the external conflicting sensor behind
+     a TCA9548A channel.
+
+### 4. Important Marine Installation Rules for I2C Buses
+* **Total Cable Length Limit:** I2C was designed for inter-chip communication
+  on a single PCB or across short chassis wire harnesses. The maximum
+  recommended total cumulative bus length is **1.0 to 1.5 meters (3 to 5
+  feet)** at standard 100 kHz or 400 kHz clock rates. Long wire runs pick up RF
+  noise and suffer from cumulative capacitance that distorts square wave edges.
+* **Sensors Located Far from the Panel:** If sensors must be mounted far from
+  HALMET (e.g. wet exhaust temperature or engine room sensors 3 to 10 meters
+  away), **do not use I2C**. Use **1-Wire (DS18B20)** or analog resistive/4–20
+  mA senders instead, which are engineered for long, noisy cable runs. Keep I2C
+  sensors (barometer, IMU) housed inside or immediately adjacent to the HALMET
+  electrical enclosure.
+* **Cumulative Pull-Up Resistors:** Every Qwiic breakout module usually
+  includes onboard $2.2\,\text{k}\Omega$ or $4.7\,\text{k}\Omega$ pull-up
+  resistors on SDA and SCL. When daisy-chaining 4 or 5 breakout boards, these
+  pull-ups sit in parallel, dropping total bus pull-up resistance
+  ($R_{\text{pullup}}$) below $1\,\text{k}\Omega$. If you experience
+  intermittent I2C communication errors with multiple chained modules, cut the
+  I2C pull-up solder jumpers on all but one peripheral module.
+
+# Integration with External Systems
+
 ## Tablet / Phones (Navionics, Aqua Map, OpenCPN)
 * **Connectivity:** 2.4 GHz Wi-Fi link. The ESP32 acts as a SoftAP or connects
   to the onboard router.
