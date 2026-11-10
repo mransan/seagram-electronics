@@ -10,6 +10,11 @@ electronics for the Seagram sailing yacht.
     2000 to Wi-Fi/Ethernet gateway specification (alternative to YDWG-02), with
     I2C environmental/motion and 1-Wire engine monitoring sensors across
     discrete, M5Stack (PortABC + CANBus Unit), and HALMET hardware options.
+  - [`i2c-barometric-sensors`]( docs/i2c-barometric-pressure-sensors.md):
+    Evaluation guide for marine I2C barometric pressure sensors (BMP384,
+    BMP585, LPS35HW, DPS368), gel-filled cavity protection, European stock
+    availability (Mouser, DigiKey, GoTronic, RS France), and HALMET Qwiic
+    integration.
   - [`nmea2000`](docs/nmea2000.md): NMEA 2000 (IEC 61162-3) protocol
     specification, CAN bus physical layer, ISO 11898-2 differential signaling,
     SAE J1939 framing, PGN datagrams, dynamic address arbitration, and LEN
@@ -22,8 +27,9 @@ electronics for the Seagram sailing yacht.
     (bridging SeaTalk1 instruments/autopilot to N2K, OpenPlotter via YD
     gateways).
   - [`HALMET`](parts/HALMET.md): Hat Labs Marine Engine & Tank Interface
-    (ESP32-based N2K gateway, 6–32V power with polyfuse protection, isolated
-    analog/digital inputs, and KUS resistive tank level sensor integration).
+    (ESP32-based N2K gateway, 5–32V power with polyfuse protection, isolated
+    analog/digital inputs, I2C Qwiic daisy-chaining, and KUS resistive tank
+    level sensor integration).
   - [`iTC-5`](parts/iTC-5.md): Raymarine iTC-5 Instrument Transducer Converter
     (includes sensor wiring requirements and S2G course computer caveats).
   - [`M81105`](parts/M81105.md): Raymarine Rotary Rudder Reference Transducer
