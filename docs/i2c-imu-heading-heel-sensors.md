@@ -105,16 +105,16 @@ Choosing between the BNO085 and ICM-20948 depends on the system architecture:
 
 ```mermaid
 flowchart TD
-    subgraph Option A: Autonomous On-Chip AHRS (BNO085)
-        BNO[BNO085 Breakout\nAdafruit 4754] -->|Qwiic I2C\nQuaternions / Euler| ESP[ESP32 / HALMET Gateway]
-        ESP -->|SensESP / N2K| N2K_A[NMEA 2000 Bus\nPGN 127250 / 127257]
-        ESP -->|Wi-Fi / Signal K| SK_A[Signal K Server\nAttitude & Heading]
+    subgraph OptionA["Option A: Autonomous On-Chip AHRS (BNO085)"]
+        BNO["BNO085 Breakout (Adafruit 4754)"] -->|"Qwiic I2C (Quaternions / Euler)"| ESP["ESP32 / HALMET Gateway"]
+        ESP -->|"SensESP / N2K"| N2K_A["NMEA 2000 Bus (PGN 127250 / 127257)"]
+        ESP -->|"Wi-Fi / Signal K"| SK_A["Signal K Server (Attitude & Heading)"]
     end
 
-    subgraph Option B: Host-Based Software AHRS (ICM-20948 / Pypilot)
-        ICM[ICM-20948 Breakout\nAdafruit 4554] -->|I2C Raw Accel/Gyro/Mag| PI[OpenPlotter / Raspberry Pi]
-        PI -->|Pypilot Calibration &\nMadgwick Fusion| PY[Pypilot Service]
-        PY -->|Signal K Native| SK_B[Signal K Server\nAttitude & Heading]
+    subgraph OptionB["Option B: Host-Based Software AHRS (ICM-20948 / Pypilot)"]
+        ICM["ICM-20948 Breakout (Adafruit 4554)"] -->|"I2C Raw Accel / Gyro / Mag"| PI["OpenPlotter / Raspberry Pi"]
+        PI -->|"Pypilot Calibration & Madgwick Fusion"| PY["Pypilot Service"]
+        PY -->|"Signal K Native"| SK_B["Signal K Server (Attitude & Heading)"]
     end
 ```
 
