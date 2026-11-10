@@ -15,6 +15,11 @@ electronics for the Seagram sailing yacht.
     BMP585, LPS35HW, DPS368), gel-filled cavity protection, European stock
     availability (Mouser, DigiKey, GoTronic, RS France), and HALMET Qwiic
     integration.
+  - [`i2c-imu-heading-heel`](docs/i2c-imu-heading-heel-sensors.md): Evaluation
+    guide for marine I2C 9-axis IMU and compass sensors (BNO085, ICM-20948,
+    ISM330DHCX) for magnetic heading and dynamic heel/pitch angles, European
+    stock availability (GoTronic, Mouser, DigiKey), and HALMET Qwiic
+    integration.
   - [`nmea2000`](docs/nmea2000.md): NMEA 2000 (IEC 61162-3) protocol
     specification, CAN bus physical layer, ISO 11898-2 differential signaling,
     SAE J1939 framing, PGN datagrams, dynamic address arbitration, and LEN
