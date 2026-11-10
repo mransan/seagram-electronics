@@ -40,15 +40,15 @@ cavity with a specialized inert silicone gel.
 
 ## 2. Sensor Comparative Technical Specifications
 
-| Sensor IC | Manufacturer | Protective Design | Relative Precision (RMS Noise) | Absolute Accuracy | I2C Address (7-bit) | Operating Pressure |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **BMP384** | Bosch Sensortec | **Gel-filled cavity** (Splash/humidity proof) | $\pm 0.008\,\text{hPa}$ ($\pm 7\,\text{cm}$) | $\pm 0.5\,\text{hPa}$ | `0x77` (or `0x76`) | 300 to 1250 hPa |
-| **BMP585** | Bosch Sensortec | **Gel-filled cavity** (IPX8, salt/chemical proof) | $\pm 0.001\,\text{hPa}$ ($\pm 1\,\text{cm}$) | $\pm 0.3\,\text{hPa}$ | `0x47` (or `0x46`) | 300 to 1250 hPa |
-| **LPS35HW** | STMicroelectronics | **Gel-filled ceramic** (Water-resistant, 10 bar) | $\pm 0.010\,\text{hPa}$ ($\pm 10\,\text{cm}$) | $\pm 0.5\,\text{hPa}$ | `0x5D` (or `0x5C`) | 260 to 1260 hPa |
-| **LPS33HW** | STMicroelectronics | **Gel-filled + O-ring metal nozzle** | $\pm 0.010\,\text{hPa}$ ($\pm 10\,\text{cm}$) | $\pm 0.5\,\text{hPa}$ | `0x5D` (or `0x5C`) | 260 to 1260 hPa |
-| **DPS368** | Infineon Technologies | **Gel-filled package** (IPx8, 50 m waterproof) | $\pm 0.002\,\text{hPa}$ ($\pm 2\,\text{cm}$) | $\pm 1.0\,\text{hPa}$ | `0x77` (or `0x76`) | 300 to 1200 hPa |
-| **BMP388** | Bosch Sensortec | Open vent cavity (Bare silicon) | $\pm 0.008\,\text{hPa}$ ($\pm 7\,\text{cm}$) | $\pm 0.5\,\text{hPa}$ | `0x77` (or `0x76`) | 300 to 1250 hPa |
-| **BME280** | Bosch Sensortec | Open vent cavity (Temp + Humid + Press) | $\pm 0.012\,\text{hPa}$ ($\pm 10\,\text{cm}$) | $\pm 1.0\,\text{hPa}$ | `0x76` (or `0x77`) | 300 to 1100 hPa |
+| Sensor IC | Manufacturer | Protective Design | RMS Noise (Resolution) | Relative Accuracy | Absolute Accuracy | I2C Address (7-bit) | Operating Pressure |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **BMP384** | Bosch Sensortec | **Gel-filled cavity** (Splash/humidity proof) | $0.08\,\text{Pa}$ ($\approx 0.0008\,\text{hPa}$) | $\pm 0.09\,\text{hPa}$ ($\pm 9\,\text{Pa}$) | $\pm 0.5\,\text{hPa}$ | `0x77` (or `0x76`) | 300 to 1250 hPa |
+| **BMP585** | Bosch Sensortec | **Gel-filled cavity** (IPX8, salt/chemical proof) | $0.08\,\text{Pa}$ ($\approx 0.0008\,\text{hPa}$) | $\pm 0.06\,\text{hPa}$ ($\pm 6\,\text{Pa}$) | $\pm 0.3\,\text{hPa}$ | `0x47` (or `0x46`) | 300 to 1250 hPa |
+| **LPS35HW** | STMicroelectronics | **Gel-filled ceramic** (Water-resistant, 10 bar) | $0.75\,\text{Pa}$ ($\approx 0.0075\,\text{hPa}$) | $\pm 0.10\,\text{hPa}$ ($\pm 10\,\text{Pa}$) | $\pm 0.5\,\text{hPa}$ | `0x5D` (or `0x5C`) | 260 to 1260 hPa |
+| **LPS33HW** | STMicroelectronics | **Gel-filled + O-ring metal nozzle** | $0.75\,\text{Pa}$ ($\approx 0.0075\,\text{hPa}$) | $\pm 0.10\,\text{hPa}$ ($\pm 10\,\text{Pa}$) | $\pm 0.5\,\text{hPa}$ | `0x5D` (or `0x5C`) | 260 to 1260 hPa |
+| **DPS368** | Infineon Technologies | **Gel-filled package** (IPx8, 50 m waterproof) | $0.50\,\text{Pa}$ ($\approx 0.0050\,\text{hPa}$) | $\pm 0.06\,\text{hPa}$ ($\pm 6\,\text{Pa}$) | $\pm 1.0\,\text{hPa}$ | `0x77` (or `0x76`) | 300 to 1200 hPa |
+| **BMP388** | Bosch Sensortec | Open vent cavity (Bare silicon) | $0.08\,\text{Pa}$ ($\approx 0.0008\,\text{hPa}$) | $\pm 0.08\,\text{hPa}$ ($\pm 8\,\text{Pa}$) | $\pm 0.5\,\text{hPa}$ | `0x77` (or `0x76`) | 300 to 1250 hPa |
+| **BME280** | Bosch Sensortec | Open vent cavity (Temp + Humid + Press) | $0.20\,\text{Pa}$ ($\approx 0.0020\,\text{hPa}$) | $\pm 0.12\,\text{hPa}$ ($\pm 12\,\text{Pa}$) | $\pm 1.0\,\text{hPa}$ | `0x76` (or `0x77`) | 300 to 1100 hPa |
 
 ---
 
