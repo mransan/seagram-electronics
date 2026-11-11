@@ -86,9 +86,10 @@ You can tap the $+12\,\text{V}$ switched line at two physical locations:
 | Tap Location | Accessibility | Wire Run to HALMET | Splicing Complexity | Recommendation |
 | :--- | :--- | :--- | :--- | :--- |
 | **Option 1: Behind the Rule Switch Panel** | Very clean, dry, inside the main electrical console or helm panel. | Usually short ($< 1\text{ to }2\,\text{m}$) if HALMET is mounted near the main DC panel. | Tap the **MAN** output terminal or the indicator light feed using a piggyback spade or WAGO 221. | **Preferred (Cleanest & driest).** |
-| **Option 2: Inside the Engine / Bilge Sump** | Wet, corrosive, prone to oil and water immersion. | Requires running 3–5 meters of wire from the bilge back to HALMET. | Requires waterproof adhesive heat-shrink butt splices or a sealed junction box. | Only if the switch panel is inaccessible. |
+| **Option 2: Dedicated Marine PowerPost / Terminal Block** | Extremely robust, ABYC-compliant, bolted ring terminals prevent loose connections. | Can be located either at the helm panel or in an intermediate dry junction area. | High reliability: uses insulated studs (M6 / 1/4") or screw terminal blocks with ring terminals. | **Highest Mechanical Reliability.** |
+| **Option 3: Inside the Engine / Bilge Sump** | Wet, corrosive, prone to oil and water immersion. | Requires running 3–5 meters of wire from the bilge back to HALMET. | Requires waterproof adhesive heat-shrink butt splices or a sealed junction box. | Only if the switch panel is inaccessible. |
 
-### 3.1 Option 1: Splicing Behind the Rule Switch Panel (Recommended)
+### 3.1 Option 1: Splicing Behind the Rule Switch Panel
 The back of the Rule 3-way rocker switch panel features 0.250" (6.35 mm) male
 quick-connect spade terminals:
 1. Locate the terminal labeled **MAN / PUMP** (or the switched output lead
@@ -112,18 +113,84 @@ quick-connect spade terminals:
         and
      2) your sensing lead to HALMET. This creates a completely reversible,
         solderless tap with zero wire cutting.
-3. Run your sensing cable to HALMET:
-   - **Conductor 1 (+):** Tap from the switched pump feed $\rightarrow$
-     **HALMET D1 (+)**.
-   - **Conductor 2 (-):** Connect to **any local DC negative busbar or ground
-     terminal**.
-     - *Does Ground Location Matter?* **No.** Because all negative returns on a
-       12V boat system meet at the common battery negative bus, you do **not**
-       need to drag a dedicated ground wire from the bilge switch. You can wire
-       **HALMET D1 (-)** directly to the nearest DC negative terminal block or
-       ground busbar located right next to the HALMET enclosure.
 
-### 3.2 Inductive Kickback & Flyback Diodes: Marine Practice vs Electronics
+### 3.2 Option 2: High-Reliability PowerPost / Terminal Block (ABYC)
+
+Because the bilge pump $+12\,\text{V}$ circuit is safety-critical (carrying 8.4
+A continuous and over 20 A locked-rotor current), quick-connect spade terminals
+can loosen over time under heavy engine vibration. The gold standard in marine
+electrical engineering (ABYC Standard E-11) is a **bolted connection** using
+tinned-copper ring terminals secured with locking nuts or captive screws.
+
+Several marine-grade components are readily sourceable in France:
+
+#### 1. Blue Sea Systems Mini PowerPost (Single Insulated Stud — Recommended)
+A dedicated isolated distribution stud provides the strongest mechanical
+connection for joining the switched $+12\,\text{V}$ pump feed, the float/rocker
+switch output, and the fused HALMET sensing wire.
+* **Blue Sea Systems 2011 (Mini PowerPost 1/4"-20 / M6 Stud):**
+  - Features an insulated $1/4"$ (6.35 mm) tinned copper stud rated up to 150 A
+    continuous.
+  - Includes a protective red insulating snap-on cover preventing accidental
+    shorts to ground or tools.
+  - Accommodates 3 to 4 ring terminals stacked securely with a stainless-steel
+    lock washer and nut.
+  - **Sourcing in France:**
+    - [Tyboat — Mini PowerPost 1/4" Ref 2011](
+      https://www.tyboat.com/achat/P-3022-blue-sea-systems-borne-mini-powerpost-1-4.html)
+    - [H2R Equipements — Mini PowerPost 150 A](
+      https://www.h2r-equipements.com/borniers-tableau-electrique-bateau/8768-blue-sea-systems-mini-power-post.html)
+    - Also available from SVB Marine France and Accastillage Diffusion (AD
+      Nautic).
+
+#### 2. Blue Sea Systems Closed-Back Terminal Blocks
+If you prefer a clean barrier strip mounting onto a bulkhead or inside a
+junction enclosure:
+* **Blue Sea Systems 2502 (2-Circuit) or 2504 (4-Circuit) 30A Terminal Block:**
+  - Closed-back design insulates power from the mounting surface.
+  - #8-32 (M4) nickel-plated brass screws with captive star lock washers.
+  - Rated for 30 A per circuit and up to 600 V.
+  - Uses standard M4 / #8 tinned insulated ring or flanged spade terminals.
+  - **Sourcing in France:**
+    - [Tyboat — Bornier à vis 30A 2 vis (Ref 2502)](
+      https://www.tyboat.com/achat/P-3040-blue-sea-systems-bornier-a-vis-30a-2-vis.html)
+    - [Tyboat — Bornier à vis 30A 4 vis (Ref 2504)](
+      https://www.tyboat.com/achat/P-3041-blue-sea-systems-bornier-a-vis-30a-4-vis.html)
+
+#### 3. Blue Sea Systems MiniBus 100A (Small Busbar with Cover)
+* **Blue Sea Systems 2304 / 2314 (MiniBus 100A, 4 or 5 Screws):**
+  - 4x or 5x #8-32 (M4) stainless terminal screws + 1x or 2x #10-32 (M5) studs.
+  - Includes an insulating snap-on polycarbonate cover.
+  - Ideal if you want a shared $+12\,\text{V}$ switched junction or common
+    ground distribution point.
+  - **Sourcing in France:**
+    - [Tyboat — Barrette de connexion 100A 4 vis (Ref 2304)](
+      https://www.tyboat.com/achat/P-15638-blue-sea-systems-barrette-de-connexion-100a-4-vis.html)
+
+#### 4. GoTronic Direct Solution: WAGO 221 with Bulkhead / DIN Mounting Carrier
+If ordering strictly from GoTronic, loose WAGO lever nuts should not hang
+freely by their wires in a marine engine compartment or console. You can anchor
+them securely using the official WAGO mounting carrier:
+* **WAGO 221-500 Mounting Carrier:**
+  - [GoTronic Ref 33273](
+    https://www.gotronic.fr/art-adaptateur-de-fixation-rail-din-221-500-33273.htm)
+  - Screws firmly onto any bulkhead, timber backer board, or DIN rail.
+  - Securely locks WAGO 221-413 (or 221-412/415) connectors in place so they
+    cannot vibrate, rattle, or pull loose.
+  - Fully compliant with industrial vibration and shock standards.
+
+### 3.3 Sensing Cable Wiring to HALMET
+* **Conductor 1 (+):** Tap from the switched pump feed $\rightarrow$ **HALMET
+  D1 (+)**.
+* **Conductor 2 (-):** Connect to **any local DC negative busbar or ground
+  terminal**.
+  - *Does Ground Location Matter?* **No.** Because all negative returns on a
+    12V boat system meet at the common battery negative bus, you do **not**
+    need to drag a dedicated ground wire from the bilge switch. You can wire
+    **HALMET D1 (-)** directly to the nearest DC negative terminal block or
+    ground busbar located right next to the HALMET enclosure.
+
+### 3.4 Inductive Kickback & Flyback Diodes: Marine Practice vs Electronics
 
 In industrial DC motor control, putting a reverse-biased flyback diode across
 an inductive load is standard practice to suppress the high-voltage spike
