@@ -179,14 +179,91 @@ flowchart TD
                                                       +---------------------------+
 ```
 
-### 4.2 HALMET 1-Wire Connection Details
-* HALMET provides a 3-pin 1-Wire footprint on the PCB tied to **ESP32 GPIO 4**.
-* It includes an onboard pull-up resistor and ESD clamping diodes.
-* By default, Hat Labs leaves the 1-Wire 3-pin connector unpopulated to allow
-  installing a vertical header, right-angle header, or screw terminal block
-  depending on enclosure clearance.
-* Power the probes with **$3.3\,\text{V}$** from HALMET's power rail (or
-  $5\,\text{V}$ if long line capacitance requires higher noise margins).
+### 4.2 Supply Voltage Selection: 3.3V vs 5.0V Analysis
+
+A critical design choice is whether to power the 1-Wire network from HALMET's
+$+3.3\,\text{V}$ rail or $+5.0\,\text{V}$ rail.
+
+#### Mathematical Analysis for a 3-Meter Run:
+1. **Current Draw:**
+   - Active conversion current per DS18B20: $I_{\text{conv}} \le
+     1.5\,\text{mA}$.
+   - Idle standby current: $I_{\text{standby}} \approx 1\,\mu\text{A}$.
+   - For three (3) probes actively converting simultaneously:
+     $$I_{\text{total}} = 3 \times 1.5\,\text{mA} = 4.5\,\text{mA}$$
+2. **DC Voltage Drop Across 3 Meters of 22 AWG Cable:**
+   - Loop length (power + ground return) $= 2 \times 3\,\text{m} =
+     6\,\text{m}$.
+   - Resistance of 22 AWG copper wire: $R \approx 0.052\,\Omega/\text{m}$.
+   - Total loop resistance: $$R_{\text{loop}} = 6\,\text{m} \times
+     0.052\,\Omega/\text{m} = 0.312\,\Omega$$
+   - Total DC voltage drop: $$\Delta V = I_{\text{total}} \times
+     R_{\text{loop}} = 0.0045\,\text{A} \times 0.312\,\Omega \approx
+     0.0014\,\text{V}\ (1.4\,\text{mV})$$
+   - With a $3.30\,\text{V}$ supply, voltage arriving at the engine junction
+     box is $3.2986\,\text{V}$, vastly exceeding the DS18B20 minimum operating
+     voltage of $3.00\,\text{V}$.
+3. **Logic Level Thresholds & ESP32 GPIO 4 Safety:**
+   - **ESP32 GPIO 4 Maximum Rating:** Absolute maximum input voltage is
+     $V_{\text{DD}} + 0.3\,\text{V} = 3.6\,\text{V}$.
+   - **HALMET Onboard Pull-Up:** HALMET's 1-Wire pull-up resistor is hardwired
+     to the **$+3.3\,\text{V}$ rail**.
+   - If the probes are powered at $5.0\,\text{V}$, the 1-Wire DQ open-drain
+     line would either need a level shifter or risk exceeding the ESP32 GPIO
+     input voltage if an external $5\,\text{V}$ pull-up were added.
+   - **DS18B20 Input High Threshold ($V_{\text{IH}}$):** The DS18B20 datasheet
+     specifies $V_{\text{IH,min}} = 2.2\,\text{V}$. When the pull-up is tied to
+     $3.3\,\text{V}$, the high-level voltage ($3.3\,\text{V}$) provides a clean
+     $1.1\,\text{V}$ margin above $V_{\text{IH,min}}$.
+4. **RC Rise Time on 3 Meters:**
+   - Shielded 22 AWG cable capacitance: $C \approx 100\,\text{pF/m}$.
+   - Total cable capacitance for 3 meters: $C_{\text{cable}} \approx
+     300\,\text{pF}$.
+   - Plus 3 probes ($\approx 25\,\text{pF}$ each): $C_{\text{total}} \approx
+     375\,\text{pF}$.
+   - Time constant $\tau = R_{\text{pullup}} \times C_{\text{total}} =
+     4.7\,\text{k}\Omega \times 375\,\text{pF} \approx 1.76\,\mu\text{s}$.
+   - The 1-Wire standard timeslot allows up to $15\,\mu\text{s}$ before
+     sampling; a $1.76\,\mu\text{s}$ rise time is well within specification.
+
+#### Conclusion: Use **3.3V**
+For a 3-meter run with 22 AWG wire, **$3.3\,\text{V}$ is the optimal and safest
+choice**. It provides $100\%$ logic compatibility with the ESP32 without level
+shifters, draws negligible voltage drop ($< 2\,\text{mV}$), and meets all
+DS18B20 operating parameters.
+
+---
+
+### 4.3 Wire Gauge Selection: 22 AWG vs 20 AWG
+
+Between 22 AWG ($0.34\,\text{mm}^2$) and 20 AWG ($0.50\,\text{mm}^2$):
+
+* **Best Choice: 22 AWG ($0.34\,\text{mm}^2$) shielded instrumentation cable.**
+  - **Why 22 AWG is superior here:**
+    1. *Physical Match to Probes:* Standard waterproof DS18B20 probe pigtails
+       use very thin 26 AWG or 28 AWG ($0.08\text{ to }0.14\,\text{mm}^2$)
+       wires. Splicing 26 AWG to a heavy 18 or 20 AWG wire inside terminal
+       blocks can pinch or shear the smaller wire. 22 AWG matches the
+       mechanical scale of the probe leads much closer.
+    2. *Lower Capacitive Load:* Thinner insulation and smaller conductor
+       surface area in 22 AWG cable yields slightly lower mutual capacitance
+       per meter than thick 18/20 AWG cable, sharpening 1-Wire square-wave
+       edges.
+    3. *Flexibility & Routing:* A 3-core shielded 22 AWG cable has an outer
+       diameter of $\approx 4.0\text{ to }4.5\,\text{mm}$, making it easy to
+       route through tight engine compartment conduits and marine glands.
+    4. *Negligible Resistance Benefit of 20 AWG:* The resistance difference
+       between 22 AWG ($0.052\,\Omega/\text{m}$) and 20 AWG
+       ($0.033\,\Omega/\text{m}$) over 3 meters accounts for less than
+       $0.5\,\text{mV}$ of drop at $4.5\,\text{mA}$, which is completely
+       inconsequential.
+* **When to use 20 AWG:** If the cable run exceeds 15–20 meters, or if physical
+  ruggedness against mechanical chafing requires a thicker outer jacket. For 3
+  meters in conduit, **22 AWG shielded** is best.
+
+---
+
+### 4.4 HALMET 1-Wire Header Connection Details
 
 ---
 
@@ -223,6 +300,6 @@ to its corresponding Signal K temperature path (values converted to Kelvin):
 | :--- | :--- | :--- | :--- |
 | **DS18B20 Probes** | Waterproof stainless probe (1m–2m leads) | GoTronic `03657` / Adafruit `381` | In Stock |
 | **DS18B20 Ring Lug** | Bolt-on M6 ring lug probe for alternator | Adafruit `5883` / Mouser | In Stock |
-| **Trunk Cable** | 3-core shielded tinned marine cable 20–22 AWG | Lapp / Belden / GoTronic | Widely Available |
+| **Trunk Cable** | 3-core shielded tinned marine cable 22 AWG (best) | Lapp / Belden / GoTronic | Widely Available |
 | **Enclosure** | Small IP65 junction box with cable glands | GoTronic / Leroy Merlin | In Stock |
 | **Connectors** | WAGO 221-413 (3-conductor lever nuts) | GoTronic / RS Components | In Stock |
