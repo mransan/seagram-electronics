@@ -266,10 +266,10 @@ shipping:
 
 | Item | Description | GoTronic Part & Link | Alternative / Notes |
 | :--- | :--- | :--- | :--- |
-| **Sensing Cable** | 2-conductor shielded cable (2 x 0.22 mm², black, 4 mm OD) | [Câble blindé CBR222 (Code: 48402)](https://www.gotronic.fr/art-cable-blindee-cbr222-48402.htm) | Perfect fit for 0.14 mA sensing run |
-| **Terminal Taps** | Sachet 10 cosses Faston femelles 6.35 mm (0.5–1.0 mm²) | [Cosses FRF6 (Code: 09884)](https://www.gotronic.fr/art-10-cosses-frf6-09884.htm) | Faston disconnect for Rule switch |
-| **Wire Connectors** | WAGO 221 lever nuts (3 conductors, 0.2–4 mm²) | [WAGO 221-413 (Code: 48707)](https://www.gotronic.fr/art-borne-wago-221-413-48707.htm) | Clean inline splicing without soldering |
-| **Inline Fuse Holder**| 5x20 mm in-line fuse holder (chassis / solderable) | [Porte-fusible PF2 (Code: 09401)](https://www.gotronic.fr/art-porte-fusible-pf2-09401.htm) | Protects sensing wire at tap point |
-| **1A Fast-Blow Fuse** | Fusible rapide 1.0 A (5 x 20 mm) | [Fusible rapide 1A (Code: 09311)](https://www.gotronic.fr/art-fusible-rapide-1-0-a-09311.htm) | Insert into inline fuse holder |
-| **Optional Snubber Diode** | Diode de redressement 3A / 1000V DO-201AD | [Diode 1N5408 (Code: 02502)](https://www.gotronic.fr/art-10-diodes-1n5408-02502.htm) | Optional inductive kickback protection |
+| **Sensing Cable** | 2-conductor shielded cable (2 x 0.22 mm², black, 4 mm OD) | [Câble blindé CBR222 (Code: 48402)](https://www.gotronic.fr/art-cable-blinde-cbr222-15142.htm) | Perfect fit for 0.14 mA sensing run |
+| **Terminal Taps** | Sachet 10 cosses Faston femelles 6.35 mm (0.5–1.0 mm²) | [Cosses FRF6 (Code: 09884)](https://www.gotronic.fr/art-10-cosses-rouges-frf6-5920.htm) | Faston disconnect for Rule switch |
+| **Wire Connectors** | WAGO 221 lever nuts (3 conductors, 0.2–4 mm²) | [WAGO 221-413 (Code: 48707)](https://www.gotronic.fr/art-borne-a-leviers-wg413-24509.htm) | Clean inline splicing without soldering |
+| **Inline Fuse Holder**| 5x20 mm in-line fuse holder (chassis / solderable) | [Porte-fusible PF2 (Code: 09401)](https://www.gotronic.fr/art-porte-fusible-pf2-5543.htm) | Protects sensing wire at tap point |
+| **1A Fast-Blow Fuse** | Fusible rapide 1.0 A (5 x 20 mm) | [Fusible rapide 1A (Code: 09311)](https://www.gotronic.fr/art-fusible-rapide-1-0-a-203.htm) | Insert into inline fuse holder |
+| **Optional Snubber Diode** | Diode de redressement 3A / 1000V DO-201AD | [Diode 1N5408 (Code: 02502)](https://www.gotronic.fr/art-1n5408-1610.htm) | Optional inductive kickback protection |
 | **HALMET Gateway** | Marine Engine & Tank Interface (Hat Labs) | [Hat Labs HALMET](https://hatlabs.fi/) | Isolated digital inputs D1–D4 |
