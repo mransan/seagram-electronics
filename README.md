@@ -6,6 +6,10 @@ electronics for the Seagram sailing yacht.
 ## Directory Structure
 
 - `docs/`: Technical protocol specifications and architectural documentation.
+  - [`1-wire-engine-temperature-probes`](
+    docs/1-wire-engine-temperature-probes.md): Architecture, wiring topology,
+    cable gauges, and Signal K / N2K integration for marine engine 1-Wire
+    temperature probes (coolant, exhaust, alternator) with HALMET.
   - [`esp32-n2k-wifi-gateway`](docs/esp32-n2k-wifi-gateway.md): DIY ESP32 NMEA
     2000 to Wi-Fi/Ethernet gateway specification (alternative to YDWG-02), with
     I2C environmental/motion and 1-Wire engine monitoring sensors across
