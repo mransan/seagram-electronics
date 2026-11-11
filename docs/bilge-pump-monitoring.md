@@ -79,17 +79,18 @@ flowchart TD
 
 ---
 
-## 3. Splicing Options: Where to Tap the Signal
+## 3. Splicing Options: Where and How to Tap the Signal
 
-You can tap the $+12\,\text{V}$ switched line at two physical locations:
+You can tap the $+12\,\text{V}$ switched line at two physical locations (both
+dry behind the console, or in the wet bilge sump):
 
-| Tap Location | Accessibility | Wire Run to HALMET | Splicing Complexity | Recommendation |
+| Splicing Method & Location | Physical Location | Wire Run to HALMET | Splicing Hardware | Recommendation |
 | :--- | :--- | :--- | :--- | :--- |
-| **Option 1: Behind the Rule Switch Panel** | Very clean, dry, inside the main electrical console or helm panel. | Usually short ($< 1\text{ to }2\,\text{m}$) if HALMET is mounted near the main DC panel. | Tap the **MAN** output terminal or the indicator light feed using a piggyback spade or WAGO 221. | **Preferred (Cleanest & driest).** |
-| **Option 2: Dedicated Marine PowerPost / Terminal Block** | Extremely robust, ABYC-compliant, bolted ring terminals prevent loose connections. | Can be located either at the helm panel or in an intermediate dry junction area. | High reliability: uses insulated studs (M6 / 1/4") or screw terminal blocks with ring terminals. | **Highest Mechanical Reliability.** |
-| **Option 3: Inside the Engine / Bilge Sump** | Wet, corrosive, prone to oil and water immersion. | Requires running 3–5 meters of wire from the bilge back to HALMET. | Requires waterproof adhesive heat-shrink butt splices or a sealed junction box. | Only if the switch panel is inaccessible. |
+| **Method 1: Direct on Switch Terminals** | Dry console, directly on the back of the Rule switch. | Short ($< 1\text{ to }2\,\text{m}$) if HALMET is near the DC panel. | Piggyback Faston 6.35 mm or in-line WAGO 221 split. | Quickest; no additional mounting hardware. |
+| **Method 2: Marine PowerPost / Terminal Block** | Dry console, mounted right next to the Rule switch. | Short ($< 1\text{ to }2\,\text{m}$) if HALMET is near the DC panel. | Bolted M6 stud (PowerPost) or M4 terminal block with ring terminals. | **Highest Mechanical Reliability (ABYC compliant).** |
+| **Method 3: Inside Bilge / Engine Sump** | Wet, corrosive bilge sump near pump base. | Long (3–5 meters from bilge up to HALMET). | Adhesive waterproof heat-shrink butt splices or sealed IP67 junction box. | Only if the switch console is completely inaccessible. |
 
-### 3.1 Option 1: Splicing Behind the Rule Switch Panel
+### 3.1 Method 1: Splicing Directly Behind the Rule Switch (Fastons / WAGO)
 The back of the Rule 3-way rocker switch panel features 0.250" (6.35 mm) male
 quick-connect spade terminals:
 1. Locate the terminal labeled **MAN / PUMP** (or the switched output lead
@@ -114,13 +115,19 @@ quick-connect spade terminals:
      2) your sensing lead to HALMET. This creates a completely reversible,
         solderless tap with zero wire cutting.
 
-### 3.2 Option 2: High-Reliability PowerPost / Terminal Block (ABYC)
+### 3.2 Method 2: PowerPost / Terminal Block next to Switch (ABYC)
+
+Instead of stacking quick-connect Faston adapters on the switch tabs, this
+method places an insulated marine terminal block or power post immediately
+adjacent to the back of the Rule switch inside the dry electrical console.
 
 Because the bilge pump $+12\,\text{V}$ circuit is safety-critical (carrying 8.4
 A continuous and over 20 A locked-rotor current), quick-connect spade terminals
 can loosen over time under heavy engine vibration. The gold standard in marine
 electrical engineering (ABYC Standard E-11) is a **bolted connection** using
 tinned-copper ring terminals secured with locking nuts or captive screws.
+Mounted right next to the Rule switch in the dry console, it provides the
+ultimate in serviceability and mechanical strength.
 
 Several marine-grade components are readily sourceable in France:
 
