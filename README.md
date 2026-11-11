@@ -10,6 +10,10 @@ electronics for the Seagram sailing yacht.
     docs/1-wire-engine-temperature-probes.md): Architecture, wiring topology,
     cable gauges, and Signal K / N2K integration for marine engine 1-Wire
     temperature probes (coolant, exhaust, alternator) with HALMET.
+  - [`bilge-pump-monitoring`](docs/bilge-pump-monitoring.md): Direct-wire
+    sensing architecture for Rule bilge pump systems (pump, float switch, 3-way
+    panel switch) with HALMET isolated digital inputs, cycle counts, runtime
+    logging, and Signal K / N2K mapping.
   - [`esp32-n2k-wifi-gateway`](docs/esp32-n2k-wifi-gateway.md): DIY ESP32 NMEA
     2000 to Wi-Fi/Ethernet gateway specification (alternative to YDWG-02), with
     I2C environmental/motion and 1-Wire engine monitoring sensors across
