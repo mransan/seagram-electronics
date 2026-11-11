@@ -89,16 +89,31 @@ You can tap the $+12\,\text{V}$ switched line at two physical locations:
 | **Option 2: Inside the Engine / Bilge Sump** | Wet, corrosive, prone to oil and water immersion. | Requires running 3–5 meters of wire from the bilge back to HALMET. | Requires waterproof adhesive heat-shrink butt splices or a sealed junction box. | Only if the switch panel is inaccessible. |
 
 ### 3.1 Option 1: Splicing Behind the Rule Switch Panel (Recommended)
-The back of the Rule 3-way rocker switch panel features 0.250" (6.3 mm) male
+The back of the Rule 3-way rocker switch panel features 0.250" (6.35 mm) male
 quick-connect spade terminals:
 1. Locate the terminal labeled **MAN / PUMP** (or the switched output lead
    running to the pump's brown wire).
-2. Install a **Fully Insulated Piggyback Spade Terminal** (dual-male /
-   single-female $6.3\,\text{mm}$ disconnect) onto that terminal.
-3. Re-attach the original pump wire to one prong, and connect your sensing wire
-   to the second prong.
-4. Run a 2-conductor cable to HALMET:
-   - **Conductor 1 (+):** Piggyback tap on the pump switched feed $\rightarrow$
+2. **Connecting without cutting wires (Two Methods):**
+   - **Method A — Pre-made Piggyback Adapter / Cosse à repiquage:** Use a 6.35
+     mm "piggyback" terminal (female socket with an integrated male tab on the
+     back). Slide it directly onto the switch terminal, push the original pump
+     wire onto the piggyback tab, and crimp your sensing wire to the pigtailed
+     barrel. *(Note: GoTronic only stocks standard single female/male Fastons;
+     piggyback Fastons are widely found at French marine/auto chandlers such as
+     Accastillage Diffusion, H2R Equipements, or Amazon.fr as "cosse à
+     repiquage 6.35 mm" or "cosse mixte").*
+   - **Method B — In-line WAGO 221 Split (100% GoTronic compatible):** If you
+     only have standard parts from GoTronic: unplug the original pump wire
+     female Faston from the switch, plug a short jumper with a male Faston
+     ([FMG6](https://www.gotronic.fr/art-10-cosses-fmg6-5894.htm)) into it, run
+     that into a 3-port WAGO 221-413, and from the WAGO run:
+     1) one lead back to the switch with a female Faston
+        ([FRF6](https://www.gotronic.fr/art-10-cosses-rouges-frf6-5920.htm)),
+        and
+     2) your sensing lead to HALMET. This creates a completely reversible,
+        solderless tap with zero wire cutting.
+3. Run your sensing cable to HALMET:
+   - **Conductor 1 (+):** Tap from the switched pump feed $\rightarrow$
      **HALMET D1 (+)**.
    - **Conductor 2 (-):** Connect to **any local DC negative busbar or ground
      terminal**.
@@ -267,7 +282,8 @@ shipping:
 | Item | Description | GoTronic Part & Link | Alternative / Notes |
 | :--- | :--- | :--- | :--- |
 | **Sensing Cable** | 2-conductor shielded cable (2 x 0.22 mm², black, 4 mm OD) | [Câble blindé CBR222 (Code: 48402)](https://www.gotronic.fr/art-cable-blinde-cbr222-15142.htm) | Perfect fit for 0.14 mA sensing run |
-| **Terminal Taps** | Sachet 10 cosses Faston femelles 6.35 mm (0.5–1.0 mm²) | [Cosses FRF6 (Code: 09884)](https://www.gotronic.fr/art-10-cosses-rouges-frf6-5920.htm) | Faston disconnect for Rule switch |
+| **Terminal Taps (Femelle)** | Sachet 10 cosses Faston femelles 6.35 mm (0.5–1.0 mm²) | [Cosses FRF6 (Code: 09884)](https://www.gotronic.fr/art-10-cosses-rouges-frf6-5920.htm) | Faston disconnect for Rule switch |
+| **Terminal Taps (Mâle)** | Sachet 10 cosses Faston mâles 6.35 mm à languette | [Cosses FMG6 (Code: 09858)](https://www.gotronic.fr/art-10-cosses-fmg6-5894.htm) | To create reversible inline WAGO tap |
 | **Wire Connectors** | WAGO 221 lever nuts (3 conductors, 0.2–4 mm²) | [WAGO 221-413 (Code: 48707)](https://www.gotronic.fr/art-borne-a-leviers-wg413-24509.htm) | Clean inline splicing without soldering |
 | **Inline Fuse Holder**| 5x20 mm in-line fuse holder (chassis / solderable) | [Porte-fusible PF2 (Code: 09401)](https://www.gotronic.fr/art-porte-fusible-pf2-5543.htm) | Protects sensing wire at tap point |
 | **1A Fast-Blow Fuse** | Fusible rapide 1.0 A (5 x 20 mm) | [Fusible rapide 1A (Code: 09311)](https://www.gotronic.fr/art-fusible-rapide-1-0-a-203.htm) | Insert into inline fuse holder |
