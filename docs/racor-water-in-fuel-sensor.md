@@ -73,7 +73,81 @@ settles at the base of the transparent or metal bowl.
 
 ---
 
-## 2. HALMET Hardware Interfacing Options
+## 2. Real-World Electrical Resistance of Water in Diesel & Industry Thresholds
+
+Understanding real-world resistance values is critical for a dependable
+hardware integration. The electrical values used in this specification are
+grounded in official Parker Racor engineering manuals, diesel injection
+standards, and real-world DIY marine and automotive telemetry implementations.
+
+### 2.1 The Electrochemical Working Principle
+
+* **Clean Diesel Fuel:** Pure hydrocarbons are non-polar dielectric fluids.
+  Hydrocarbons have virtually zero free ions and an extremely low dielectric
+  constant ($\varepsilon_r \approx 2.1$). In clean diesel fuel or dry air, the
+  resistance measured between the two stainless steel probe tips is
+  **infinite** ($R > 10\,\text{M}\Omega$ to $50\,\text{M}\Omega$).
+* **Water in Fuel:** Water separated from marine diesel is never distilled
+  water. It originates from atmospheric condensation inside fuel tanks, tanker
+  delivery moisture, or salt spray ingression through tank vent lines. It
+  contains dissolved mineral ions, traces of fuel sulfur compounds, and salts,
+  forming an **ionic electrolyte solution**:
+  - **Salt Water / Seawater Contamination:** Extremely high ionic conductance
+    ($\sigma \approx 50{,}000\,\mu\text{S/cm}$). Probe resistance drops to
+    **$200\,\Omega \text{ to } 2{,}000\,\Omega$**.
+  - **Engine Tank Condensation (Typical Marine):** Moderate ionic conductance
+    ($\sigma \approx 100 \text{ to } 500\,\mu\text{S/cm}$). Probe resistance
+    settles between **$5\,\text{k}\Omega \text{ and } 35\,\text{k}\Omega$**.
+  - **Very Pure Fresh Rainwater Condensation:** Low ionic conductance ($\sigma
+    \approx 20 \text{ to } 50\,\mu\text{S/cm}$). Probe resistance ranges from
+    **$35\,\text{k}\Omega \text{ to } 70\,\text{k}\Omega$**.
+
+### 2.2 Official Manufacturer Trigger Thresholds (Parker Racor & Davco)
+
+To verify that these values match industrial marine hardware:
+1. **Parker Racor Factory Modules (RK 20725, RK 20726, RK 30056):** Parker
+   Racor's official detection modules continuously measure resistance across
+   passive probes (RK21069). The factory electronic threshold circuit is
+   hard-calibrated to trigger the alarm whenever fluid resistance drops below
+   **$47\,\text{k}\Omega \text{ to } 100\,\text{k}\Omega$** (with modern active
+   probes such as the RK30880E standardizing on an exact **$47\,\text{k}\Omega$
+   threshold**).
+2. **Heavy-Duty Commercial Diesel Standards (Davco & Cummins ECMs):**
+   Commercial diesel water-in-fuel systems (such as Davco Fuel Pro and Cummins
+   Fleetguard sensors) utilize an **$82.5\,\text{k}\Omega$** reference
+   resistance. When water bridges the probe tips, the ECM senses the resistance
+   collapse below this reference level and raises the dash alarm.
+
+### 2.3 Field Experience & Design Recommendations
+
+* **Why Option 2 (Analog Input A1 via ADS1115) is Recommended over Option 1:**
+  - **Option 1 (Digital Schmitt Trigger):** Relies on HALMET's fixed
+    $100\,\text{k}\Omega$ internal pull-up and a fixed hardware switching
+    threshold ($V_{T-} \approx 1.2\,\text{V}$). For the digital input to flip
+    LOW, fluid resistance must drop below $47\,\text{k}\Omega$. While this
+    reliably catches salt water and standard marine condensation, it has less
+    margin if very pure rainwater condensation reaches $60\,\text{k}\Omega$.
+  - **Option 2 (Analog Input A1):** With an external $47\,\text{k}\Omega$ bias
+    resistor, HALMET's 16-bit ADS1115 measures continuous voltage from $0$ to
+    $3.3\,\text{V}$. You can set the software threshold in ESP32 firmware to
+    $V_{\text{alarm}} \le 2.0\,\text{V}$ (which corresponds to
+    $R_{\text{fluid}} \le 72\,\text{k}\Omega$), giving full coverage for both
+    mineralized wash and pure rainwater condensation.
+* **Corrosion & Electrolysis Prevention:** A common finding in DIY water probe
+  implementations is that applying continuous high DC current across submerged
+  metal electrodes causes electrolytic oxidation (eroding the positive pin). In
+  our HALMET circuit:
+  - The $47\,\text{k}\Omega \text{ to } 100\,\text{k}\Omega$ bias resistor
+    limits the maximum current through the fluid to less than
+    **$70\,\mu\text{A}$** ($0.07\,\text{mA}$).
+  - In normal operation (clean diesel), the circuit is open and current is $<
+    0.3\,\mu\text{A}$.
+  - This negligible current produces zero electrolytic erosion, preserving the
+    stainless steel probe indefinitely.
+
+---
+
+## 3. HALMET Hardware Interfacing Options
 
 HALMET provides four **galvanically isolated digital inputs (D1–D4)** and four
 **galvanically isolated analog inputs (A1–A4)**. The field wiring side operates
@@ -85,7 +159,7 @@ Two wiring configurations can be used to interface the passive Racor probe:
 
 ---
 
-### 2.1 Option 1: Digital Input (D1–D4) with Onboard Bias Resistor
+### 3.1 Option 1: Digital Input (D1–D4) with Onboard Bias Resistor
 
 Rather than requiring any external components, this option relies on HALMET's
 onboard configurable bias resistor connected to the digital input buffer.
@@ -183,14 +257,14 @@ Let us calculate the exact electrical behavior in each state:
 
 ---
 
-### 2.2 Option 2: Analog Input (A1–A4) with External Bias Resistor
+### 3.2 Option 2: Analog Input (A1–A4) with External Bias (Recommended)
 
 If you want continuous measurement of the actual resistance across the filter
 bowl—allowing you to detect early emulsified moisture, observe drying after
 servicing, or calibrate custom trigger levels in software—you can wire the
 probe to one of HALMET's analog channels.
 
-#### 2.2.1 Physical Circuit Connections
+#### 3.2.1 Physical Circuit Connections
 HALMET's analog inputs feed a 16-bit **Texas Instruments ADS1115 ADC** on the
 isolated side. To measure resistance with a voltage ADC, you create a voltage
 divider by connecting an external fixed resistor between the isolated power
@@ -207,7 +281,7 @@ rail and the analog terminal.
     with the resistor leg).
   - Connect **Racor Probe Lead 2** to **HALMET Isolated Ground (-)**.
 
-#### 2.2.2 Schematic Diagram
+#### 3.2.2 Schematic Diagram
 ```mermaid
 flowchart TD
     subgraph HALMET_Isolated_Power ["Isolated Auxiliary Power Header"]
@@ -237,7 +311,7 @@ flowchart TD
     ProbeTip2 ===|"Wire 2 (Lead 2)"| GND_ISO
 ```
 
-#### 2.2.3 Mathematical Analysis & Software Calculation
+#### 3.2.3 Mathematical Analysis & Software Calculation
 The ADS1115 measures the analog voltage $V_{\text{A1}}$ with 16-bit resolution
 (typically 0.125 mV per LSB in $\pm 4.096\,\text{V}$ range).
 
@@ -290,7 +364,7 @@ $$R_{\text{fluid}} = R_{\text{fixed}} \times \frac{V_{\text{A1}}}{3.3\,\text{V}
 
 ---
 
-## 3. Physical Installation & Wiring Best Practice
+## 4. Physical Installation & Wiring Best Practice
 
 ### 3.1 Mechanical Installation on the 230R Bowl
 1. Place a clean drain catch pan underneath the Racor 230R filter.
