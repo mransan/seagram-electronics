@@ -77,79 +77,216 @@ settles at the base of the transparent or metal bowl.
 
 HALMET provides four **galvanically isolated digital inputs (D1–D4)** and four
 **galvanically isolated analog inputs (A1–A4)**. The field wiring side operates
-in its own isolated domain, completely protecting the ESP32 and NMEA 2000 CAN
-bus from ground loops or high-voltage transients.
+in its own isolated power domain powered by an onboard isolated DC/DC converter
+and digital isolators, completely protecting the ESP32 and NMEA 2000 CAN bus
+from ground loops or high-voltage transients.
 
-Two wiring configurations can be used:
+Two wiring configurations can be used to interface the passive Racor probe:
 
-### 2.1 Option 1: Digital Input (D1–D4) with Internal Pull-Up (Simplest)
+---
 
-HALMET's digital inputs feature Schmitt trigger buffers with a nominal
-switching threshold of $\sim 1.55\,\text{V}$ and configurable solder jumpers on
-the bottom side for an internal **$100\,\text{k}\Omega$ pull-up or pull-down
-resistor**.
+### 2.1 Option 1: Digital Input (D1–D4) with Onboard Bias Resistor
 
-* **Wiring:**
-  - Connect **Probe Lead 1** to **HALMET D1 (+)**.
-  - Connect **Probe Lead 2** to **HALMET Isolated GND (-)**.
-  - Enable the **$100\,\text{k}\Omega$ pull-up solder jumper** on the underside
-    of HALMET for channel D1 (pulling D1 up to the isolated 3.3 V rail).
+Rather than requiring any external components, this option relies on HALMET's
+onboard configurable bias resistor connected to the digital input buffer.
 
+#### 2.1.1 Physical Circuit Connections & Solder Jumper
+HALMET's printed circuit board has solder jumper pads on its bottom surface
+associated with each digital input channel (D1 to D4).
+* On the underside of the board, locate the three solder pads for channel
+  **D1**.
+* Bridging the center pad to the pad marked **PU** physically solders an
+  internal **$100\,\text{k}\Omega$ fixed resistor ($R_{\text{bias}}$)** between
+  the **Isolated $+3.3\,\text{V}$ DC power rail** and the **D1 (+) terminal**.
+* **Terminal Wiring:**
+  - Connect **Racor Probe Lead 1** directly to **HALMET D1 (+)** terminal.
+  - Connect **Racor Probe Lead 2** directly to **HALMET Isolated Ground (-)**
+    terminal.
+
+#### 2.1.2 Schematic Diagram
+```mermaid
+flowchart TD
+    subgraph HALMET_Isolated_Domain ["HALMET Isolated Domain"]
+        VCC["Isolated +3.3V DC Rail"]
+        R_bias["Internal Resistor R_bias (100 kΩ)<br>(Connected via PU Solder Jumper)"]
+        NodeD1["Terminal D1 (+) Sensing Node"]
+        Schmitt["Schmitt Trigger Buffer (GPIO 23)<br>Threshold: V_T+ ≈ 1.9V, V_T- ≈ 1.2V"]
+        GND_ISO["Terminal D1 (-) / Isolated Ground (0V)"]
+
+        VCC -->|Supplies current| R_bias
+        R_bias --> NodeD1
+        NodeD1 --> Schmitt
+    end
+
+    subgraph Racor_Filter_Bowl ["Racor 230R Filter Bowl"]
+        ProbeTip1["Stainless Electrode Tip 1"]
+        Liquid["Fluid Dielectric / Resistance (R_fluid)"]
+        ProbeTip2["Stainless Electrode Tip 2"]
+
+        ProbeTip1 --- Liquid --- ProbeTip2
+    end
+
+    NodeD1 ===|"Wire 1 (Lead 1)"| ProbeTip1
+    ProbeTip2 ===|"Wire 2 (Lead 2)"| GND_ISO
 ```
-   Isolated 3.3V Rail
-           |
-          [ ] Internal 100k Pull-up (Solder Jumper enabled)
-           |
-           +---------------------> Schmitt Trigger (D1 Input)
-           |
-      (Lead 1)
-     [ Racor RK21069 ]
-     [  Probe Tips   ]
-      (Lead 2)
-           |
-   Isolated Ground (GND)
+
+#### 2.1.3 Mathematical Analysis & Operating States
+The circuit forms a continuous **resistive voltage divider** between the
+isolated $+3.3\,\text{V}$ rail, the fixed $100\,\text{k}\Omega$ internal
+resistor, and the fluid resistance across the probe tips ($R_{\text{fluid}}$):
+
+$$V_{\text{sense}} = V_{\text{CC}} \times
+\frac{R_{\text{fluid}}}{R_{\text{bias}} + R_{\text{fluid}}} = 3.3\,\text{V}
+\times \frac{R_{\text{fluid}}}{100\,\text{k}\Omega + R_{\text{fluid}}}$$
+
+The sensing node feeds into a **Schmitt trigger input buffer** with built-in
+hysteresis:
+* Logic **HIGH** (Normal / Dry) requires $V_{\text{sense}} \ge V_{T+} \approx
+  1.9\,\text{V}$.
+* Logic **LOW** (Alarm / Water) is triggered when $V_{\text{sense}} \le V_{T-}
+  \approx 1.2\,\text{V}$.
+
+Let us calculate the exact electrical behavior in each state:
+
+1. **State 1: Pure Diesel Fuel (Normal Operation)**
+   - Diesel fuel is an insulator with resistance $R_{\text{fluid}} \ge
+     10\,\text{M}\Omega$ ($10{,}000\,\text{k}\Omega$).
+   - Current flowing through the circuit: $$I =
+     \frac{3.3\,\text{V}}{100\,\text{k}\Omega + 10{,}000\,\text{k}\Omega}
+     \approx 0.33\,\mu\text{A}$$
+   - Resulting voltage at D1: $$V_{\text{sense}} = 3.3\,\text{V} \times
+     \frac{10{,}000}{100 + 10{,}000} = 3.3\,\text{V} \times 0.990 =
+     3.27\,\text{V}$$
+   - **Result:** $3.27\,\text{V} > 1.9\,\text{V} \rightarrow$ The Schmitt
+     trigger outputs a solid **Logic HIGH (1)**. No alarm.
+
+2. **State 2: Water Accumulation (Water-in-Fuel Alarm)**
+   - As water settles to the bottom of the Racor 230R bowl, it submerges both
+     stainless probe tips. Marine water and condensation contain dissolved
+     ions, dropping the resistance between the tips to $R_{\text{fluid}}
+     \approx 20\,\text{k}\Omega \text{ to } 47\,\text{k}\Omega$.
+   - For typical brackish or engine condensation water ($R_{\text{fluid}}
+     \approx 30\,\text{k}\Omega$): $$I =
+     \frac{3.3\,\text{V}}{100\,\text{k}\Omega + 30\,\text{k}\Omega} =
+     \frac{3.3\,\text{V}}{130\,\text{k}\Omega} \approx 25.4\,\mu\text{A}$$
+   - Resulting voltage at D1: $$V_{\text{sense}} = 3.3\,\text{V} \times
+     \frac{30\,\text{k}\Omega}{100\,\text{k}\Omega + 30\,\text{k}\Omega} =
+     3.3\,\text{V} \times 0.231 = 0.76\,\text{V}$$
+   - Even with fresh rainwater condensation ($R_{\text{fluid}} \approx
+     47\,\text{k}\Omega$): $$V_{\text{sense}} = 3.3\,\text{V} \times
+     \frac{47\,\text{k}\Omega}{100\,\text{k}\Omega + 47\,\text{k}\Omega} =
+     3.3\,\text{V} \times 0.320 = 1.05\,\text{V}$$
+   - **Result:** In both cases, $V_{\text{sense}} \le 1.05\,\text{V}$, which is
+     well below the $V_{T-} \approx 1.2\,\text{V}$ switching threshold. The
+     Schmitt trigger flips to **Logic LOW (0)**. The firmware detects this
+     transition and fires the alarm.
+
+---
+
+### 2.2 Option 2: Analog Input (A1–A4) with External Bias Resistor
+
+If you want continuous measurement of the actual resistance across the filter
+bowl—allowing you to detect early emulsified moisture, observe drying after
+servicing, or calibrate custom trigger levels in software—you can wire the
+probe to one of HALMET's analog channels.
+
+#### 2.2.1 Physical Circuit Connections
+HALMET's analog inputs feed a 16-bit **Texas Instruments ADS1115 ADC** on the
+isolated side. To measure resistance with a voltage ADC, you create a voltage
+divider by connecting an external fixed resistor between the isolated power
+rail and the analog terminal.
+
+* **Hardware Components:**
+  - One standard fixed through-hole or 1/4W resistor: **$R_{\text{fixed}} =
+    47\,\text{k}\Omega$** (or $100\,\text{k}\Omega$).
+* **Terminal Wiring:**
+  - Connect one leg of the **$47\,\text{k}\Omega$ resistor** to the **Isolated
+    $+3.3\,\text{V}$ terminal** on HALMET's isolated auxiliary power header.
+  - Connect the other leg of the resistor to **HALMET A1 (+)**.
+  - Connect **Racor Probe Lead 1** to **HALMET A1 (+)** (sharing the terminal
+    with the resistor leg).
+  - Connect **Racor Probe Lead 2** to **HALMET Isolated Ground (-)**.
+
+#### 2.2.2 Schematic Diagram
+```mermaid
+flowchart TD
+    subgraph HALMET_Isolated_Power ["Isolated Auxiliary Power Header"]
+        VCC_ISO["Isolated +3.3V Output Terminal"]
+    end
+
+    subgraph HALMET_Analog_Channel ["HALMET Analog Input A1"]
+        R_ext["External Resistor R_fixed (47 kΩ)"]
+        NodeA1["Terminal A1 (+) Sensing Node"]
+        ADC["ADS1115 16-bit ADC (I2C 0x48 on Isolated Bus)"]
+        GND_ISO["Terminal A1 (-) / Isolated Ground (0V)"]
+
+        VCC_ISO ===|"Jumper Wire"| R_ext
+        R_ext --> NodeA1
+        NodeA1 --> ADC
+    end
+
+    subgraph Racor_Filter_Bowl ["Racor 230R Filter Bowl"]
+        ProbeTip1["Stainless Electrode Tip 1"]
+        Liquid["Fluid Dielectric / Resistance (R_fluid)"]
+        ProbeTip2["Stainless Electrode Tip 2"]
+
+        ProbeTip1 --- Liquid --- ProbeTip2
+    end
+
+    NodeA1 ===|"Wire 1 (Lead 1)"| ProbeTip1
+    ProbeTip2 ===|"Wire 2 (Lead 2)"| GND_ISO
 ```
 
-* **Operating Behavior:**
-  - **Dry / Pure Fuel ($R_{\text{probe}} = \infty$):** D1 is pulled to 3.3 V
-    (Logic HIGH = Normal).
-  - **Water Detected ($R_{\text{probe}} \le 47\,\text{k}\Omega$):** The voltage
-    divider between the $100\,\text{k}\Omega$ pull-up and the probe resistance
-    drops the input voltage below $1.05\,\text{V}$: $$V_{\text{in}} =
-    3.3\,\text{V} \times \frac{47\,\text{k}\Omega}{100\,\text{k}\Omega +
-    47\,\text{k}\Omega} \approx 1.05\,\text{V}$$ Because $1.05\,\text{V}$ is
-    well below the Schmitt trigger input low threshold ($\sim 1.2\,\text{V}$),
-    D1 flips to **Logic LOW** (Water Alarm).
-* **Advantage:** Requires zero external resistors or components. Only the probe
-  and two wires directly to the D1 terminal block.
+#### 2.2.3 Mathematical Analysis & Software Calculation
+The ADS1115 measures the analog voltage $V_{\text{A1}}$ with 16-bit resolution
+(typically 0.125 mV per LSB in $\pm 4.096\,\text{V}$ range).
 
-### 2.2 Option 2: Analog Input (A1–A4) via Isolated 3.3 V Bias (Most Tunable)
+$$V_{\text{A1}} = 3.3\,\text{V} \times \frac{R_{\text{fluid}}}{R_{\text{fixed}}
++ R_{\text{fluid}}}$$
 
-If your boat operates with pure fresh-water condensation where water
-conductivity may be slightly lower ($50\,\text{k}\Omega \text{ to }
-150\,\text{k}\Omega$), an analog channel provides calibrated voltage/resistance
-measurement and adjustable software thresholds.
+Rearranging this equation in firmware allows the ESP32 to compute the exact
+real-time fluid resistance in ohms:
 
-* **Wiring:**
-  - Connect **Probe Lead 1** to **HALMET A1 (+)**.
-  - Connect **Probe Lead 2** to **HALMET Isolated GND (-)**.
-  - HALMET's A1 input feeds a 16-bit Texas Instruments **ADS1115 ADC** on the
-    isolated bus.
-  - Connect a pull-up resistor ($47\,\text{k}\Omega$ to $100\,\text{k}\Omega$)
-    between the **Isolated 3V3 terminal** on HALMET's power breakout and
-    **HALMET A1 (+)**.
-* **Firmware Calibration:**
-  - Read voltage continuously via ADS1115 ($0 \text{ to } 3.3\,\text{V}$).
-  - Clean fuel: reads $\sim 3.3\,\text{V}$.
-  - Sludge / initial trace moisture: voltage begins to dip.
-  - Threshold trigger: flag alarm when $V_{\text{in}} < 2.0\,\text{V}$ for more
-    than 3 consecutive seconds (debouncing slosh).
+$$R_{\text{fluid}} = R_{\text{fixed}} \times \frac{V_{\text{A1}}}{3.3\,\text{V}
+- V_{\text{A1}}}$$
 
-> [!IMPORTANT] **Do NOT use the 10 mA Constant Current Source (CCS) jumpers on
-> HALMET for the Racor WIF probe!** The CCS is calibrated for low-resistance
-> senders ($0 \text{ to } 300\,\Omega$). Forcing 10 mA into a high-resistance
-> fluid probe will saturate the input and may cause excessive current density
-> on the stainless probe tips.
+* **Calibration Curves & Voltage Levels ($R_{\text{fixed}} =
+  47\,\text{k}\Omega$):**
+  - **Dry / Pure Diesel ($R_{\text{fluid}} > 10\,\text{M}\Omega$):**
+    $$V_{\text{A1}} \approx 3.3\,\text{V} \quad (\text{ADC reads } \sim
+    26{,}400 \text{ counts})$$
+  - **Trace Moisture / Micro-droplets ($R_{\text{fluid}} \approx
+    150\,\text{k}\Omega$):** $$V_{\text{A1}} = 3.3 \times \frac{150}{47 + 150}
+    = 3.3 \times 0.761 = 2.51\,\text{V}$$
+  - **Significant Water Layer ($R_{\text{fluid}} \approx
+    30\,\text{k}\Omega$):** $$V_{\text{A1}} = 3.3 \times \frac{30}{47 + 30} =
+    3.3 \times 0.390 = 1.29\,\text{V}$$
+  - **Heavy Water Accumulation ($R_{\text{fluid}} \le 10\,\text{k}\Omega$):**
+    $$V_{\text{A1}} = 3.3 \times \frac{10}{47 + 10} = 3.3 \times 0.175 =
+    0.58\,\text{V}$$
+
+* **Configurable Software Alarm Threshold:** In your ESP32 code, you can define
+  an alarm setpoint with hysteresis to prevent spurious alarms caused by boat
+  motion:
+  ```cpp
+  const float V_ALARM_SETPOINT = 1.80; // Trigger alarm below 1.80V (approx R_fluid < 56 kΩ)
+  const float V_CLEAR_SETPOINT = 2.40; // Clear alarm above 2.40V (approx R_fluid > 125 kΩ)
+  ```
+
+> [!IMPORTANT] **Why You Must NOT Use the 10 mA Constant Current Source (CCS)
+> Jumpers:** HALMET includes a selectable 10 mA constant-current source
+> designed for low-impedance resistive sensors such as fuel level or oil
+> pressure senders ($0 \text{ to } 300\,\Omega$). If 10 mA were applied across
+> the Racor probe: * At $R_{\text{fluid}} = 50\,\text{k}\Omega$, Ohm's law
+> would call for $V = I \times R = 0.01\,\text{A} \times 50{,}000\,\Omega =
+> 500\,\text{V}$, which immediately saturates the CCS circuit to its supply
+> rail. * If immersed in low-resistance salt water ($500\,\Omega$),
+> $10\,\text{mA}$ would pass continuous DC current through the fuel bowl,
+> causing rapid electrolytic oxidation and pitting of the stainless steel
+> electrodes. By contrast, using a $47\,\text{k}\Omega$ to
+> $100\,\text{k}\Omega$ bias resistor limits maximum current to less than
+> **$70\,\mu\text{A}$** ($0.07\,\text{mA}$), ensuring zero probe corrosion and
+> virtually indefinite operating life.
 
 ---
 
