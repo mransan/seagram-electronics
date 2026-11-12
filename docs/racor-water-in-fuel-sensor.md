@@ -107,32 +107,33 @@ standards, and real-world DIY marine and automotive telemetry implementations.
 To verify that these values match industrial marine hardware:
 
 1. **Parker Racor Electronic Detection Specifications:**
-   - **Parker Racor Mobile & Marine Filtration Technical Manuals (Kits RK
-     20725, RK 20726, RK 30056):** Parker Racor's detection modules
-     continuously measure fluid resistance across passive probes (RK21069). The
-     internal comparator is hard-calibrated to trip the alarm whenever fluid
-     resistance drops below **$47\,\text{k}\Omega \text{ to }
-     100\,\text{k}\Omega$**.
+   - **Parker Racor Mobile & Marine Filtration Systems (Kits RK 20725, RK
+     20726, RK 30056):** Parker Racor's detection modules continuously measure
+     fluid resistance across passive probes (RK21069). The internal comparator
+     is calibrated to trip the alarm whenever fluid resistance drops below
+     **$47\,\text{k}\Omega \text{ to } 100\,\text{k}\Omega$**.
    - **Parker Racor Electronic Probe RK30880 / RK30880E Datasheet:** The
      solid-state amplifier built directly into the RK30880 series specifies an
      exact trigger threshold of **$47\,\text{k}\Omega$ ($\pm 10\%$)** to
      differentiate conductive water from dielectric fuel.
-   - *Reference Links:*
-     - [Parker Racor Water Detection Kits Specification (Brochure 7529)](
-       https://www.parker.com/)
-     - [Fisheries Supply: Racor RK30880E Specification & Technical Sheet](
-       https://www.fisheriessupply.com/racor-water-probe-rk30880e)
+   - *Verified Product & Specification References:*
+     - [Marine Parts Source: Racor RK30880E Electronic Water Probe Kit](
+       https://www.marinepartssource.com/water-probe-kit-racor-rk30880e)
+     - [Marine Parts Source: Racor RK21069 Passive Water Probe Kit](
+       https://www.marinepartssource.com/water-probe-kit-rk21069)
+     - [Tyboat: Détecteur présence d'eau Racor RK21069 1/2"-20](
+       https://www.tyboat.com/achat/P-3620-racor-detecteur-de-presence-d-eau-1-2-20-unf-rk21069.html)
 2. **Commercial Heavy-Duty Standards (Davco Fuel Pro & Cummins ECMs):**
-   - Commercial diesel fuel processors (such as the **DAVCO Fuel Pro 382 / 482
-     Series**, used extensively on Detroit Diesel and Cummins marine engines)
-     standardize on an **$82.5\,\text{k}\Omega$** reference circuit resistance
-     (Davco WIF Sensor Part #232617 / #102511).
+   - Commercial diesel fuel processors (such as the **DAVCO Fuel Pro Series**,
+     used extensively on Detroit Diesel and Cummins marine engines) standardize
+     on an **$82.5\,\text{k}\Omega$** reference circuit resistance (Davco WIF
+     Sensor Part #232617 / #102511).
    - When water bridges the sensor contacts in the filter bowl, resistance
      collapses below the $82.5\,\text{k}\Omega$ baseline, causing the ECM
      voltage divider to drop and assert the Water-in-Fuel fault code.
-   - *Reference Links:*
-     - [DAVCO Technical Literature & Fuel Pro Troubleshooting Manual](
-       https://davco.com/literature/)
+   - *Verified Technical Manual Reference:*
+     - [DAVCO Fuel Pro 482 / 483 Technical Manual (Doc F1351)](
+       https://davco.com/wp-content/uploads/2024/05/F1351.pdf)
 3. **Marine Community & Field Diagnostics (Cruisers Forum, YBW, The Hull
    Truth):**
    - Multimeter testing of clean, dry Racor probes across boat forums confirms
