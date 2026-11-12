@@ -102,50 +102,57 @@ standards, and real-world DIY marine and automotive telemetry implementations.
     \approx 20 \text{ to } 50\,\mu\text{S/cm}$). Probe resistance ranges from
     **$35\,\text{k}\Omega \text{ to } 70\,\text{k}\Omega$**.
 
-### 2.2 Official Manufacturer Trigger Thresholds & OEM References
+### 2.2 Manufacturer Trigger Thresholds & Electrical Specifications
 
 To verify that these values match industrial marine hardware:
 
 1. **Parker Racor Electronic Detection Specifications:**
-   - **Parker Racor Mobile & Marine Filtration Systems (Kits RK 20725, RK
-     20726, RK 30056):** Parker Racor's detection modules continuously measure
-     fluid resistance across passive probes (RK21069). The internal comparator
-     is calibrated to trip the alarm whenever fluid resistance drops below
-     **$47\,\text{k}\Omega \text{ to } 100\,\text{k}\Omega$**.
-   - **Parker Racor Electronic Probe RK30880 / RK30880E Datasheet:** The
-     solid-state amplifier built directly into the RK30880 series specifies an
-     exact trigger threshold of **$47\,\text{k}\Omega$ ($\pm 10\%$)** to
-     differentiate conductive water from dielectric fuel.
-   - *Verified Product & Specification References:*
-     - [Marine Parts Source: Racor RK30880E Electronic Water Probe Kit](
-       https://www.marinepartssource.com/water-probe-kit-racor-rk30880e)
-     - [Marine Parts Source: Racor RK21069 Passive Water Probe Kit](
-       https://www.marinepartssource.com/water-probe-kit-rk21069)
-     - [Tyboat: Détecteur présence d'eau Racor RK21069 1/2"-20](
-       https://www.tyboat.com/achat/P-3620-racor-detecteur-de-presence-d-eau-1-2-20-unf-rk21069.html)
-2. **Commercial Heavy-Duty Standards (Davco Fuel Pro & Cummins ECMs):**
-   - Commercial diesel fuel processors (such as the **DAVCO Fuel Pro Series**,
-     used extensively on Detroit Diesel and Cummins marine engines) standardize
-     on an **$82.5\,\text{k}\Omega$** reference circuit resistance (Davco WIF
-     Sensor Part #232617 / #102511).
-   - When water bridges the sensor contacts in the filter bowl, resistance
-     collapses below the $82.5\,\text{k}\Omega$ baseline, causing the ECM
-     voltage divider to drop and assert the Water-in-Fuel fault code.
-   - *Verified Technical Manual Reference:*
-     - [DAVCO Fuel Pro 482 / 483 Technical Manual (Doc F1351)](
-       https://davco.com/wp-content/uploads/2024/05/F1351.pdf)
-3. **Marine Community & Field Diagnostics (Cruisers Forum, YBW, The Hull
-   Truth):**
-   - Multimeter testing of clean, dry Racor probes across boat forums confirms
-     readings are strictly open-circuit (`O.L.` / $> 20\,\text{M}\Omega$).
-   - Dipping the probe into household tap water or seawater drops the reading
-     immediately into the range of $5\,\text{k}\Omega \text{ to }
-     30\,\text{k}\Omega$.
-   - False alarms reported by boat owners almost universally stem from
-     conductive asphalt/paraffin slime bridging the tips or moisture ingress
-     inside the external wiring plug, which drops resistance into the
-     $40\text{--}80\,\text{k}\Omega$ window. Cleaning the prongs with solvent
-     or fine abrasive cloth restores the open-circuit condition.
+   - **Passive Probes (RK 21069) vs Electronic Modules:** The RK 21069 probe
+     itself is a passive component containing two exposed stainless steel
+     electrodes with no internal resistors or silicon. It relies entirely on
+     external electronics to measure fluid resistance.
+   - **Trip Threshold ($47\,\text{k}\Omega \text{ to } 100\,\text{k}\Omega$):**
+     In Parker Racor's detection systems (such as the under-dash modules RK
+     20725 / RK 20726 and the self-contained electronic probe RK 30880 / RK
+     30880E), the internal comparator circuit is calibrated with a
+     **$47\,\text{k}\Omega$ threshold ($\pm 10\%$)**. When clean diesel ($R >
+     10\,\text{M}\Omega$) surrounds the pins, no alarm is raised. As soon as
+     water bridges the gap and drops resistance below $47\,\text{k}\Omega$, the
+     circuit trips the alarm.
+   - **Part References:**
+     - **RK 21069:** Standard 2-wire passive probe (1/2"-20 UNF thread, 9"
+       pigtail).
+     - **RK 30880E:** Electronic probe kit integrating the detection amplifier
+       directly into the probe body (47 kΩ trip threshold).
+2. **Commercial Heavy-Duty Standards (DAVCO Fuel Pro & Detroit Diesel /
+   Cummins):**
+   - In heavy-duty commercial diesel filtration, DAVCO Water-in-Fuel sensors
+     (such as DAVCO Part #232617 / #102511 used on Fuel Pro 382/482 processors)
+     explicitly specify testing resistance:
+     - Target baseline resistance: **$82\,\text{k}\Omega \pm 5\%$** (acceptable
+       bench test range: $77.9\,\text{k}\Omega \text{ to }
+       86.1\,\text{k}\Omega$ per DAVCO Technical Service Bulletin F3090 / WIF
+       Testing Specifications).
+     - The engine ECM monitors this continuous $82\,\text{k}\Omega$ circuit to
+       verify sensor presence; when water enters the bowl, the low-resistance
+       water path shunts this resistance toward ground, asserting the fault
+       code.
+3. **Marine Field Observations & Troubleshooting Practice:**
+   - **Bench Meter Testing:** On marine diesel engines, testing an uninstalled
+     or dry probe with a digital multimeter in resistance mode ($\Omega$) reads
+     strictly **open-circuit / over-limit (`O.L.`)**. Dipping the tips into a
+     cup of tap water or brackish water immediately registers between
+     **$5\,\text{k}\Omega \text{ and } 35\,\text{k}\Omega$**.
+   - **Field False-Alarm Modes:** When boaters experience "ghost" or false
+     water-in-fuel alarms with clean fuel, troubleshooting typically reveals
+     one of two electrical issues:
+     1. Conductive asphalt, carbon, or microbial biomass slime coating the
+        insulator between the stainless pins, creating a parasitic leakage path
+        in the $40\text{--}80\,\text{k}\Omega$ range (resolved by cleaning with
+        solvent or fine scotch-brite).
+     2. Moisture or salt-air tracking inside the external wiring connector
+        harness plug, which forms a parallel conductive bridge. Cleaning and
+        sealing the harness plug eliminates the false trigger.
 
 ### 2.3 Field Experience & Design Recommendations
 
@@ -511,11 +518,11 @@ Over Wi-Fi, HALMET's SensESP firmware can output standard Signal K deltas:
 
 ---
 
-## 5. Bill of Materials & French Sourcing
+## 5. Bill of Materials & Sourcing
 
-| Item | Manufacturer & Part Number | Key Specifications | Sourcing in France |
+| Item | Manufacturer & Part Number | Key Specifications | Sourcing Notes |
 | :--- | :--- | :--- | :--- |
-| **Racor Water Probe** | Parker Racor **RK 21069** | 1/2"-20 UNF threads, 2-wire pigtail, passive stainless tips | • [Tyboat (Ref RK21069)](https://www.tyboat.com/achat/P-3620-racor-detecteur-de-presence-d-eau-1-2-20-unf-rk21069.html)<br>• [H2R Equipements (Ref 3052)](https://www.h2r-equipements.com/filtre-a-carburant-bateau/3052-parker-racor-sonde-eau-rk21069.html) |
-| **Monitoring Board** | Hat Labs **HALMET** | ESP32, N2K CAN, isolated digital/analog inputs | [Hat Labs Store](https://shop.hatlabs.fi/products/halmet) |
+| **Racor Water Probe** | Parker Racor **RK 21069** | 1/2"-20 UNF threads, 2-wire pigtail, passive stainless tips | Available through Parker Hannifin marine distributors and diesel specialist chandlers (e.g. Marine Parts Source, Fisheries Supply, or local Parker Racor stockists). |
+| **Monitoring Board** | Hat Labs **HALMET** | ESP32, N2K CAN, isolated digital/analog inputs | [Hat Labs Official Store](https://shop.hatlabs.fi/products/halmet) |
 | **2-Wire Shielded Cable** | CBR222 | 2x 0.22 mm² (or 0.34 mm²), shielded, PVC marine jacket | [GoTronic Ref 15142](https://www.gotronic.fr/art-cable-blinde-cbr222-15142.htm) |
 | **Waterproof Splices** | Adhesive Heat-shrink Butt Splices | 22–18 AWG adhesive-lined waterproof crimp sleeves | Local marine chandlers or hardware stores |
