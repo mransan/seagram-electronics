@@ -102,30 +102,33 @@ standards, and real-world DIY marine and automotive telemetry implementations.
     \approx 20 \text{ to } 50\,\mu\text{S/cm}$). Probe resistance ranges from
     **$35\,\text{k}\Omega \text{ to } 70\,\text{k}\Omega$**.
 
-### 2.2 Manufacturer Trigger Thresholds & Electrical Specifications
+### 2.2 Manufacturer Trigger Thresholds & Official Technical Documentation
 
-To verify that these values match industrial marine hardware:
+To verify how the sensor operates across marine diesel filtration systems:
 
-1. **Parker Racor Electronic Detection Specifications:**
-   - **Passive Probes (RK 21069) vs Electronic Modules:** The RK 21069 probe
-     itself is a passive component containing two exposed stainless steel
-     electrodes with no internal resistors or silicon. It relies entirely on
-     external electronics to measure fluid resistance.
-   - **Trip Threshold ($47\,\text{k}\Omega \text{ to } 100\,\text{k}\Omega$):**
-     In Parker Racor's detection systems (such as the under-dash modules RK
-     20725 / RK 20726 and the self-contained electronic probe RK 30880 / RK
-     30880E), the internal comparator circuit is calibrated with a
-     **$47\,\text{k}\Omega$ threshold ($\pm 10\%$)**. When clean diesel ($R >
-     10\,\text{M}\Omega$) surrounds the pins, no alarm is raised. As soon as
-     water bridges the gap and drops resistance below $47\,\text{k}\Omega$, the
-     circuit trips the alarm.
-   - **Part References:**
-     - **RK 21069:** Standard 2-wire passive probe (1/2"-20 UNF thread, 9"
-       pigtail).
-     - **RK 30880E:** Electronic probe kit integrating the detection amplifier
-       directly into the probe body (47 kΩ trip threshold).
-2. **Commercial Heavy-Duty Standards (DAVCO Fuel Pro & Detroit Diesel /
-   Cummins):**
+1. **Parker Racor Parts, Service & Technical Information Guide:**
+   - According to the official [Parker Racor Parts, Service & Technical
+     Information Guide](
+     https://marinedieselbasics.com/wp-content/uploads/edd/Racor-Parts-Service-Technical-Info-Guide.pdf)
+     (Section on *Water Detection Kits & Modules*):
+     - The passive in-bowl probe (RK 21069) acts as a conductivity switch.
+     - An electronic detection module analyzes the electrical resistance
+       between the sensor tips.
+     - The system activates when water bridges the probe tips and measured
+       resistance falls below **$47{,}000\,\Omega$ ($47\,\text{k}\Omega$) to
+       $100{,}000\,\Omega$ ($100\,\text{k}\Omega$)**, depending on the
+       electronic detection module model used.
+2. **Parker Racor Factory Module Models:**
+   - **Passive Probes (RK 21069):** 1/2"-20 UNF thread, 2-wire pigtail, no
+     internal electronics. Must be connected to a sensing circuit.
+   - **Under-Dash Modules (RK 20725 / RK 12870):** Traditional comparator
+     circuits designed with high sensitivity ($100\,\text{k}\Omega$ threshold)
+     to detect low-mineral condensation.
+   - **Integrated Probes & Gauge Modules (RK 30880E / RK 20726):** Solid-state
+     units calibrated to an exact **$47\,\text{k}\Omega$ ($\pm 10\%$)**
+     threshold, optimized for marine noise immunity against microbial fuel
+     slime.
+3. **Heavy-Duty Commercial Diesel Benchmark (DAVCO Fuel Pro):**
    - In heavy-duty commercial diesel filtration, DAVCO Water-in-Fuel sensors
      (such as DAVCO Part #232617 / #102511 used on Fuel Pro 382/482 processors)
      explicitly specify testing resistance:
@@ -137,7 +140,7 @@ To verify that these values match industrial marine hardware:
        verify sensor presence; when water enters the bowl, the low-resistance
        water path shunts this resistance toward ground, asserting the fault
        code.
-3. **Marine Field Observations & Troubleshooting Practice:**
+4. **Marine Field Observations & Bench Testing:**
    - **Bench Meter Testing:** On marine diesel engines, testing an uninstalled
      or dry probe with a digital multimeter in resistance mode ($\Omega$) reads
      strictly **open-circuit / over-limit (`O.L.`)**. Dipping the tips into a
@@ -154,21 +157,67 @@ To verify that these values match industrial marine hardware:
         harness plug, which forms a parallel conductive bridge. Cleaning and
         sealing the harness plug eliminates the false trigger.
 
-### 2.3 Field Experience & Design Recommendations
+### 2.3 Operating Analysis: Digital Input (Option 1) vs Analog Input (Option 2)
 
-* **Why Option 2 (Analog Input A1 via ADS1115) is Recommended over Option 1:**
-  - **Option 1 (Digital Schmitt Trigger):** Relies on HALMET's fixed
-    $100\,\text{k}\Omega$ internal pull-up and a fixed hardware switching
-    threshold ($V_{T-} \approx 1.2\,\text{V}$). For the digital input to flip
-    LOW, fluid resistance must drop below $47\,\text{k}\Omega$. While this
-    reliably catches salt water and standard marine condensation, it has less
-    margin if very pure rainwater condensation reaches $60\,\text{k}\Omega$.
-  - **Option 2 (Analog Input A1):** With an external $47\,\text{k}\Omega$ bias
-    resistor, HALMET's 16-bit ADS1115 measures continuous voltage from $0$ to
-    $3.3\,\text{V}$. You can set the software threshold in ESP32 firmware to
-    $V_{\text{alarm}} \le 2.0\,\text{V}$ (which corresponds to
-    $R_{\text{fluid}} \le 72\,\text{k}\Omega$), giving full coverage for both
-    mineralized wash and pure rainwater condensation.
+A key question is whether **Option 1 (HALMET Digital Input D1)** operates
+reliably across the entire **$47\,\text{k}\Omega \text{ to }
+100\,\text{k}\Omega$** range documented by Parker Racor:
+
+* **HALMET Digital Schmitt Buffer Thresholds:** HALMET's digital inputs (GPIO
+  23 for D1) use a 3.3V Schmitt trigger buffer:
+  - Input Low Threshold ($V_{T-}$): Nominal $\sim 1.2\,\text{V}$ (typical logic
+    low transition occurs between $1.2\,\text{V}$ and $1.5\,\text{V}$).
+  - Input High Threshold ($V_{T+}$): Nominal $\sim 1.9\,\text{V}$.
+  - Onboard Pull-up Resistor ($R_{\text{bias}}$): Fixed $100\,\text{k}\Omega$
+    connected to $+3.3\,\text{V}$ via bottom solder jumper **PU**.
+
+* **Formula for Digital Sense Voltage:** $$V_{\text{sense}} = 3.3\,\text{V}
+  \times \frac{R_{\text{fluid}}}{100\,\text{k}\Omega + R_{\text{fluid}}}$$
+
+* **Verification Across the $47\,\text{k}\Omega \text{ to }
+  100\,\text{k}\Omega$ Range:**
+  1. **At Lower Racor Threshold ($R_{\text{fluid}} = 47\,\text{k}\Omega$):**
+     $$V_{\text{sense}} = 3.3\,\text{V} \times
+     \frac{47\,\text{k}\Omega}{100\,\text{k}\Omega + 47\,\text{k}\Omega} =
+     3.3\,\text{V} \times 0.320 = 1.05\,\text{V}$$ Because $1.05\,\text{V} \le
+     1.2\,\text{V}$ ($V_{T-}$), the Schmitt trigger firmly flips to **Logic LOW
+     (Alarm Triggered)**. This covers all modern electronic modules (RK 30880E
+     / RK 20726 standard).
+  2. **At Upper Racor Threshold ($R_{\text{fluid}} = 100\,\text{k}\Omega$):**
+     $$V_{\text{sense}} = 3.3\,\text{V} \times
+     \frac{100\,\text{k}\Omega}{100\,\text{k}\Omega + 100\,\text{k}\Omega} =
+     3.3\,\text{V} \times 0.500 = 1.65\,\text{V}$$ Because $1.65\,\text{V}$ is
+     close to the Schmitt center switching region ($1.55\,\text{V}$ nominal), a
+     high-resistance bridge of exactly $100\,\text{k}\Omega$ may hover near the
+     transition zone and not guarantee an immediate digital low transition on
+     every board sample.
+  3. **How Real Water Actually Behaves:** When free water reaches the probe
+     tips, water is an electrolyte:
+     - Brackish / salt water contamination drops resistance to **$<
+       2\,\text{k}\Omega$** ($V_{\text{sense}} \le 0.06\,\text{V}$).
+     - Standard engine tank condensation drops resistance to
+       **$5\,\text{k}\Omega \text{ to } 35\,\text{k}\Omega$**
+       ($V_{\text{sense}} \le 0.85\,\text{V}$).
+     - In both real-world conditions, $V_{\text{sense}}$ drops well below
+       $1.05\,\text{V}$, ensuring **Option 1 will trigger reliably**.
+  4. **To Guarantee 100% Coverage of the Full $100\,\text{k}\Omega$
+     High-Sensitivity Window:**
+     - **Option 1 with External Pull-Up:** If you prefer digital operation but
+       want guaranteed triggering up to $100\,\text{k}\Omega$
+       ($V_{\text{sense}} \le 1.2\,\text{V}$), you can connect an external
+       **$180\,\text{k}\Omega$ to $200\,\text{k}\Omega$** resistor between
+       Isolated 3.3V and D1 (+) instead of enabling the onboard
+       $100\,\text{k}\Omega$ jumper. At $R_{\text{fluid}} =
+       100\,\text{k}\Omega$ and $R_{\text{bias}} = 180\,\text{k}\Omega$:
+       $$V_{\text{sense}} = 3.3\,\text{V} \times
+       \frac{100\,\text{k}\Omega}{180\,\text{k}\Omega + 100\,\text{k}\Omega} =
+       1.18\,\text{V} \quad (\le V_{T-})$$
+     - **Option 2 (Analog Input A1 via ADS1115):** The ADC measures continuous
+       voltage with 16-bit precision. You can define any threshold in software
+       (e.g. $R_{\text{fluid}} \le 100\,\text{k}\Omega$ trips at $V_{\text{A1}}
+       \le 2.24\,\text{V}$ with a $47\,\text{k}\Omega$ bias resistor),
+       providing total software adjustability with zero hardware guessing.
+
 * **Corrosion & Electrolysis Prevention:** A common finding in DIY water probe
   implementations is that applying continuous high DC current across submerged
   metal electrodes causes electrolytic oxidation (eroding the positive pin). In
