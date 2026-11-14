@@ -163,6 +163,54 @@ A key question is whether **Option 1 (HALMET Digital Input D1)** operates
 reliably across the entire **$47\,\text{k}\Omega \text{ to }
 100\,\text{k}\Omega$** range documented by Parker Racor:
 
+#### 2.3.1 Simplified Circuit Diagram: Pull-Up Bias with Water Pull-Down
+
+The digital detection mechanism is a classic resistive pull-up network where
+the accumulated water acts as a dynamic **pull-down resistance** directly to
+ground:
+
+```mermaid
+flowchart TD
+    subgraph Supply ["Isolated Power Rail"]
+        VCC["+3.3V DC (Isolated Rail)"]
+    end
+
+    subgraph PullUp ["Pull-Up Network"]
+        R_bias["Pull-Up Resistor R_bias (100 kΩ)<br>(Internal via PU jumper, or external)"]
+    end
+
+    subgraph Node ["HALMET Screw Terminal Block"]
+        D1_PLUS["Terminal D1 (+) (Input Pin / Sensing Node)"]
+        D1_MINUS["Terminal D1 (-) (Isolated Ground Reference 0V)"]
+    end
+
+    subgraph SensingBuffer ["HALMET Digital Input"]
+        Schmitt["Schmitt Trigger Buffer (GPIO 23)<br>• V_T+ ≈ 1.9V (Logic HIGH = Normal)<br>• V_T- ≈ 1.2V (Logic LOW = Water Alarm)"]
+    end
+
+    subgraph RacorBowl ["Racor 230R Filter Bowl (Dynamic Pull-Down)"]
+        WaterBridge["Fluid Resistance (R_fluid)<br>• Pure Diesel: > 10 MΩ (Open Switch)<br>• Water Accumulation: 5 kΩ - 47 kΩ (Pull-Down)"]
+    end
+
+    VCC --> R_bias
+    R_bias --> D1_PLUS
+    D1_PLUS --> Schmitt
+    D1_PLUS ===|"Probe Lead 1"| WaterBridge
+    WaterBridge ===|"Probe Lead 2"| D1_MINUS
+```
+
+* **When Filter Bowl is Dry / Pure Diesel:** $R_{\text{fluid}} >
+  10\,\text{M}\Omega$ (essentially an open circuit). The pull-up resistor holds
+  `D1 (+)` at **$+3.3\,\text{V}$**. The Schmitt trigger reads a solid **Logic
+  HIGH (Normal)**.
+* **When Water Reaches the Probe Tips:** The conductive water bridges the tips
+  to `D1 (-)`, acting as a **pull-down resistor** that sinks current to Ground
+  ($0\,\text{V}$). This divides down the voltage at `D1 (+)`. If the resulting
+  $V_{\text{sense}}$ drops below $1.2\,\text{V}$, the Schmitt trigger flips to
+  **Logic LOW (Alarm)**.
+
+#### 2.3.2 Threshold Equations & Range Verification
+
 * **HALMET Digital Schmitt Buffer Thresholds:** HALMET's digital inputs (GPIO
   23 for D1) use a 3.3V Schmitt trigger buffer:
   - Input Low Threshold ($V_{T-}$): Nominal $\sim 1.2\,\text{V}$ (typical logic
