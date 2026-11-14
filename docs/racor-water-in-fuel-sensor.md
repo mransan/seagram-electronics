@@ -157,129 +157,6 @@ To verify how the sensor operates across marine diesel filtration systems:
         harness plug, which forms a parallel conductive bridge. Cleaning and
         sealing the harness plug eliminates the false trigger.
 
-### 2.3 Operating Analysis: Digital Input (Option 1) vs Analog Input (Option 2)
-
-A key question is whether **Option 1 (HALMET Digital Input D1)** operates
-reliably across the entire **$47\,\text{k}\Omega \text{ to }
-100\,\text{k}\Omega$** range documented by Parker Racor:
-
-#### 2.3.1 Simplified Circuit Diagram: Pull-Up Bias with Water Pull-Down
-
-The digital detection mechanism is a classic resistive pull-up network where
-the accumulated water acts as a dynamic **pull-down resistance** directly to
-ground:
-
-```mermaid
-flowchart TD
-    subgraph Supply ["Isolated Power Rail"]
-        VCC["+3.3V DC (Isolated Rail)"]
-    end
-
-    subgraph PullUp ["Pull-Up Network"]
-        R_bias["Pull-Up Resistor R_bias (100 kΩ)<br>(Internal via PU jumper, or external)"]
-    end
-
-    subgraph Node ["HALMET Screw Terminal Block"]
-        D1_PLUS["Terminal D1 (+) (Input Pin / Sensing Node)"]
-        D1_MINUS["Terminal D1 (-) (Isolated Ground Reference 0V)"]
-    end
-
-    subgraph SensingBuffer ["HALMET Digital Input"]
-        Schmitt["Schmitt Trigger Buffer (GPIO 23)<br>• V_T+ ≈ 1.9V (Logic HIGH = Normal)<br>• V_T- ≈ 1.2V (Logic LOW = Water Alarm)"]
-    end
-
-    subgraph RacorBowl ["Racor 230R Filter Bowl (Dynamic Pull-Down)"]
-        WaterBridge["Fluid Resistance (R_fluid)<br>• Pure Diesel: > 10 MΩ (Open Switch)<br>• Water Accumulation: 5 kΩ - 47 kΩ (Pull-Down)"]
-    end
-
-    VCC --> R_bias
-    R_bias --> D1_PLUS
-    D1_PLUS --> Schmitt
-    D1_PLUS ===|"Probe Lead 1"| WaterBridge
-    WaterBridge ===|"Probe Lead 2"| D1_MINUS
-```
-
-* **When Filter Bowl is Dry / Pure Diesel:** $R_{\text{fluid}} >
-  10\,\text{M}\Omega$ (essentially an open circuit). The pull-up resistor holds
-  `D1 (+)` at **$+3.3\,\text{V}$**. The Schmitt trigger reads a solid **Logic
-  HIGH (Normal)**.
-* **When Water Reaches the Probe Tips:** The conductive water bridges the tips
-  to `D1 (-)`, acting as a **pull-down resistor** that sinks current to Ground
-  ($0\,\text{V}$). This divides down the voltage at `D1 (+)`. If the resulting
-  $V_{\text{sense}}$ drops below $1.2\,\text{V}$, the Schmitt trigger flips to
-  **Logic LOW (Alarm)**.
-
-#### 2.3.2 Threshold Equations & Range Verification
-
-* **HALMET Digital Schmitt Buffer Thresholds:** HALMET's digital inputs (GPIO
-  23 for D1) use a 3.3V Schmitt trigger buffer:
-  - Input Low Threshold ($V_{T-}$): Nominal $\sim 1.2\,\text{V}$ (typical logic
-    low transition occurs between $1.2\,\text{V}$ and $1.5\,\text{V}$).
-  - Input High Threshold ($V_{T+}$): Nominal $\sim 1.9\,\text{V}$.
-  - Onboard Pull-up Resistor ($R_{\text{bias}}$): Fixed $100\,\text{k}\Omega$
-    connected to $+3.3\,\text{V}$ via bottom solder jumper **PU**.
-
-* **Formula for Digital Sense Voltage:** $$V_{\text{sense}} = 3.3\,\text{V}
-  \times \frac{R_{\text{fluid}}}{100\,\text{k}\Omega + R_{\text{fluid}}}$$
-
-* **Verification Across the $47\,\text{k}\Omega \text{ to }
-  100\,\text{k}\Omega$ Range:**
-  1. **At Lower Racor Threshold ($R_{\text{fluid}} = 47\,\text{k}\Omega$):**
-     $$V_{\text{sense}} = 3.3\,\text{V} \times
-     \frac{47\,\text{k}\Omega}{100\,\text{k}\Omega + 47\,\text{k}\Omega} =
-     3.3\,\text{V} \times 0.320 = 1.05\,\text{V}$$ Because $1.05\,\text{V} \le
-     1.2\,\text{V}$ ($V_{T-}$), the Schmitt trigger firmly flips to **Logic LOW
-     (Alarm Triggered)**. This covers all modern electronic modules (RK 30880E
-     / RK 20726 standard).
-  2. **At Upper Racor Threshold ($R_{\text{fluid}} = 100\,\text{k}\Omega$):**
-     $$V_{\text{sense}} = 3.3\,\text{V} \times
-     \frac{100\,\text{k}\Omega}{100\,\text{k}\Omega + 100\,\text{k}\Omega} =
-     3.3\,\text{V} \times 0.500 = 1.65\,\text{V}$$ Because $1.65\,\text{V}$ is
-     close to the Schmitt center switching region ($1.55\,\text{V}$ nominal), a
-     high-resistance bridge of exactly $100\,\text{k}\Omega$ may hover near the
-     transition zone and not guarantee an immediate digital low transition on
-     every board sample.
-  3. **How Real Water Actually Behaves:** When free water reaches the probe
-     tips, water is an electrolyte:
-     - Brackish / salt water contamination drops resistance to **$<
-       2\,\text{k}\Omega$** ($V_{\text{sense}} \le 0.06\,\text{V}$).
-     - Standard engine tank condensation drops resistance to
-       **$5\,\text{k}\Omega \text{ to } 35\,\text{k}\Omega$**
-       ($V_{\text{sense}} \le 0.85\,\text{V}$).
-     - In both real-world conditions, $V_{\text{sense}}$ drops well below
-       $1.05\,\text{V}$, ensuring **Option 1 will trigger reliably**.
-  4. **To Guarantee 100% Coverage of the Full $100\,\text{k}\Omega$
-     High-Sensitivity Window:**
-     - **Option 1 with External Pull-Up:** If you prefer digital operation but
-       want guaranteed triggering up to $100\,\text{k}\Omega$
-       ($V_{\text{sense}} \le 1.2\,\text{V}$), you can connect an external
-       **$180\,\text{k}\Omega$ to $200\,\text{k}\Omega$** resistor between
-       Isolated 3.3V and D1 (+) instead of enabling the onboard
-       $100\,\text{k}\Omega$ jumper. At $R_{\text{fluid}} =
-       100\,\text{k}\Omega$ and $R_{\text{bias}} = 180\,\text{k}\Omega$:
-       $$V_{\text{sense}} = 3.3\,\text{V} \times
-       \frac{100\,\text{k}\Omega}{180\,\text{k}\Omega + 100\,\text{k}\Omega} =
-       1.18\,\text{V} \quad (\le V_{T-})$$
-     - **Option 2 (Analog Input A1 via ADS1115):** The ADC measures continuous
-       voltage with 16-bit precision. You can define any threshold in software
-       (e.g. $R_{\text{fluid}} \le 100\,\text{k}\Omega$ trips at $V_{\text{A1}}
-       \le 2.24\,\text{V}$ with a $47\,\text{k}\Omega$ bias resistor),
-       providing total software adjustability with zero hardware guessing.
-
-* **Corrosion & Electrolysis Prevention:** A common finding in DIY water probe
-  implementations is that applying continuous high DC current across submerged
-  metal electrodes causes electrolytic oxidation (eroding the positive pin). In
-  our HALMET circuit:
-  - The $47\,\text{k}\Omega \text{ to } 100\,\text{k}\Omega$ bias resistor
-    limits the maximum current through the fluid to less than
-    **$70\,\mu\text{A}$** ($0.07\,\text{mA}$).
-  - In normal operation (clean diesel), the circuit is open and current is $<
-    0.3\,\mu\text{A}$.
-  - This negligible current produces zero electrolytic erosion, preserving the
-    stainless steel probe indefinitely.
-
----
-
 ## 3. HALMET Hardware Interfacing Options
 
 HALMET provides four **galvanically isolated digital inputs (D1–D4)** and four
@@ -295,29 +172,38 @@ Two wiring configurations can be used to interface the passive Racor probe:
 ### 3.1 Option 1: Digital Input (D1–D4) with Onboard Bias Resistor
 
 Rather than requiring any external components, this option relies on HALMET's
-onboard configurable bias resistor connected to the digital input buffer.
+onboard configurable bias resistor connected to the digital input buffer. The
+detection mechanism is a classic resistive pull-up network where accumulated
+water in the filter bowl acts as a dynamic **pull-down resistance** directly to
+isolated ground.
 
-#### 2.1.1 Physical Circuit Connections & Solder Jumper
+#### 3.1.1 Physical Circuit Connections & Solder Jumper (PU)
+
 HALMET's printed circuit board has solder jumper pads on its bottom surface
 associated with each digital input channel (D1 to D4).
-* On the underside of the board, locate the three solder pads for channel
-  **D1**.
-* Bridging the center pad to the pad marked **PU** physically solders an
-  internal **$100\,\text{k}\Omega$ fixed resistor ($R_{\text{bias}}$)** between
-  the **Isolated $+3.3\,\text{V}$ DC power rail** and the **D1 (+) terminal**.
-* **Terminal Wiring:**
-  - Connect **Racor Probe Lead 1** directly to **HALMET D1 (+)** terminal.
-  - Connect **Racor Probe Lead 2** directly to **HALMET Isolated Ground (-)**
-    terminal.
 
-#### 2.1.2 Schematic Diagram
+* **Configuring the Onboard Pull-Up:**
+  - On the underside of the board, locate the three solder pads for channel
+    **D1**.
+  - Bridging the center pad to the pad marked **PU** physically connects an
+    internal **$100\,\text{k}\Omega$ fixed resistor ($R_{\text{bias}}$)**
+    between the **Isolated $+3.3\,\text{V}$ DC power rail** and the **D1 (+)**
+    terminal.
+* **Terminal Wiring:**
+  - Connect **Racor Probe Lead 1** directly to **HALMET D1 (+)** terminal (the
+    sensing input pin).
+  - Connect **Racor Probe Lead 2** directly to **HALMET D1 (-)** terminal
+    (Isolated Ground $0\,\text{V}$).
+
+#### 3.1.2 Schematic Diagram: Pull-Up Bias with Water Pull-Down
+
 ```mermaid
 flowchart TD
     subgraph HALMET_Isolated_Domain ["HALMET Isolated Domain"]
         VCC["Isolated +3.3V DC Rail"]
         R_bias["Internal Resistor R_bias (100 kΩ)<br>(Connected via PU Solder Jumper)"]
-        NodeD1["Terminal D1 (+) Sensing Node"]
-        Schmitt["Schmitt Trigger Buffer (GPIO 23)<br>Threshold: V_T+ ≈ 1.9V, V_T- ≈ 1.2V"]
+        NodeD1["Terminal D1 (+) (Input Pin / Sensing Node)"]
+        Schmitt["Schmitt Trigger Buffer (GPIO 23)<br>• V_T+ ≈ 1.9V (Logic HIGH = Normal)<br>• V_T- ≈ 1.2V (Logic LOW = Water Alarm)"]
         GND_ISO["Terminal D1 (-) / Isolated Ground (0V)"]
 
         VCC -->|Supplies current| R_bias
@@ -325,19 +211,30 @@ flowchart TD
         NodeD1 --> Schmitt
     end
 
-    subgraph Racor_Filter_Bowl ["Racor 230R Filter Bowl"]
+    subgraph Racor_Filter_Bowl ["Racor 230R Filter Bowl (Dynamic Pull-Down)"]
         ProbeTip1["Stainless Electrode Tip 1"]
-        Liquid["Fluid Dielectric / Resistance (R_fluid)"]
+        Liquid["Fluid Dielectric / Resistance (R_fluid)<br>• Pure Diesel: > 10 MΩ (Open Switch)<br>• Water Accumulation: 5 kΩ - 47 kΩ (Pull-Down)"]
         ProbeTip2["Stainless Electrode Tip 2"]
 
         ProbeTip1 --- Liquid --- ProbeTip2
     end
 
-    NodeD1 ===|"Wire 1 (Lead 1)"| ProbeTip1
-    ProbeTip2 ===|"Wire 2 (Lead 2)"| GND_ISO
+    NodeD1 ===|"Probe Lead 1"| ProbeTip1
+    ProbeTip2 ===|"Probe Lead 2"| GND_ISO
 ```
 
-#### 2.1.3 Mathematical Analysis & Operating States
+* **When Filter Bowl is Dry / Pure Diesel:** $R_{\text{fluid}} >
+  10\,\text{M}\Omega$ (essentially an open circuit). The pull-up resistor holds
+  `D1 (+)` at $+3.3\,\text{V}$. The Schmitt trigger reads a solid **Logic HIGH
+  (Normal)**.
+* **When Water Reaches the Probe Tips:** The conductive water bridges the tips
+  to `D1 (-)`, acting as a **pull-down resistor** that sinks current to Ground
+  ($0\,\text{V}$). This divides down the voltage at `D1 (+)`. When
+  $V_{\text{sense}}$ drops below $1.2\,\text{V}$, the Schmitt trigger flips to
+  **Logic LOW (Alarm)**.
+
+#### 3.1.3 Mathematical Analysis & Threshold Verification
+
 The circuit forms a continuous **resistive voltage divider** between the
 isolated $+3.3\,\text{V}$ rail, the fixed $100\,\text{k}\Omega$ internal
 resistor, and the fluid resistance across the probe tips ($R_{\text{fluid}}$):
@@ -353,7 +250,7 @@ hysteresis:
 * Logic **LOW** (Alarm / Water) is triggered when $V_{\text{sense}} \le V_{T-}
   \approx 1.2\,\text{V}$.
 
-Let us calculate the exact electrical behavior in each state:
+##### Operating States & Range Evaluation
 
 1. **State 1: Pure Diesel Fuel (Normal Operation)**
    - Diesel fuel is an insulator with resistance $R_{\text{fluid}} \ge
@@ -367,26 +264,62 @@ Let us calculate the exact electrical behavior in each state:
    - **Result:** $3.27\,\text{V} > 1.9\,\text{V} \rightarrow$ The Schmitt
      trigger outputs a solid **Logic HIGH (1)**. No alarm.
 
-2. **State 2: Water Accumulation (Water-in-Fuel Alarm)**
+2. **State 2: Lower Racor Threshold ($R_{\text{fluid}} \le 47\,\text{k}\Omega$
+   — Modern Modules)**
    - As water settles to the bottom of the Racor 230R bowl, it submerges both
      stainless probe tips. Marine water and condensation contain dissolved
      ions, dropping the resistance between the tips to $R_{\text{fluid}}
      \approx 20\,\text{k}\Omega \text{ to } 47\,\text{k}\Omega$.
-   - For typical brackish or engine condensation water ($R_{\text{fluid}}
-     \approx 30\,\text{k}\Omega$): $$I =
-     \frac{3.3\,\text{V}}{100\,\text{k}\Omega + 30\,\text{k}\Omega} =
-     \frac{3.3\,\text{V}}{130\,\text{k}\Omega} \approx 25.4\,\mu\text{A}$$
-   - Resulting voltage at D1: $$V_{\text{sense}} = 3.3\,\text{V} \times
+   - At the Racor $47\,\text{k}\Omega$ threshold: $$V_{\text{sense}} =
+     3.3\,\text{V} \times \frac{47\,\text{k}\Omega}{100\,\text{k}\Omega +
+     47\,\text{k}\Omega} = 3.3\,\text{V} \times 0.320 = 1.05\,\text{V}$$
+   - For typical brackish or condensation water ($R_{\text{fluid}} \approx
+     30\,\text{k}\Omega$): $$V_{\text{sense}} = 3.3\,\text{V} \times
      \frac{30\,\text{k}\Omega}{100\,\text{k}\Omega + 30\,\text{k}\Omega} =
      3.3\,\text{V} \times 0.231 = 0.76\,\text{V}$$
-   - Even with fresh rainwater condensation ($R_{\text{fluid}} \approx
-     47\,\text{k}\Omega$): $$V_{\text{sense}} = 3.3\,\text{V} \times
-     \frac{47\,\text{k}\Omega}{100\,\text{k}\Omega + 47\,\text{k}\Omega} =
-     3.3\,\text{V} \times 0.320 = 1.05\,\text{V}$$
    - **Result:** In both cases, $V_{\text{sense}} \le 1.05\,\text{V}$, which is
      well below the $V_{T-} \approx 1.2\,\text{V}$ switching threshold. The
-     Schmitt trigger flips to **Logic LOW (0)**. The firmware detects this
-     transition and fires the alarm.
+     Schmitt trigger flips to **Logic LOW (0)**, firing the alarm reliably.
+     This covers all modern electronic modules (RK 30880E / RK 20726 standard).
+
+3. **State 3: Upper Racor Threshold ($R_{\text{fluid}} \approx
+   100\,\text{k}\Omega$) & High Sensitivity**
+   - At $R_{\text{fluid}} = 100\,\text{k}\Omega$: $$V_{\text{sense}} =
+     3.3\,\text{V} \times \frac{100\,\text{k}\Omega}{100\,\text{k}\Omega +
+     100\,\text{k}\Omega} = 3.3\,\text{V} \times 0.500 = 1.65\,\text{V}$$
+   - Because $1.65\,\text{V}$ is close to the Schmitt trigger center switching
+     region ($1.55\,\text{V}$ nominal), a high-resistance bridge of exactly
+     $100\,\text{k}\Omega$ may hover near the transition zone and not guarantee
+     an immediate digital low transition on every board sample.
+   - **Real-World Water Behavior:** When free water reaches the probe tips, it
+     acts as an electrolyte: brackish/salt water contamination drops resistance
+     to $< 2\,\text{k}\Omega$ ($V_{\text{sense}} \le 0.06\,\text{V}$), while
+     standard condensation drops resistance to $5\,\text{k}\Omega \text{ to }
+     35\,\text{k}\Omega$ ($V_{\text{sense}} \le 0.85\,\text{V}$). In both
+     real-world conditions, $V_{\text{sense}}$ drops well below
+     $1.05\,\text{V}$, ensuring Option 1 triggers reliably.
+   - **To Guarantee 100% Coverage up to $100\,\text{k}\Omega$:** If you prefer
+     digital operation but want guaranteed triggering up to
+     $100\,\text{k}\Omega$ ($V_{\text{sense}} \le 1.2\,\text{V}$), you can
+     connect an external **$180\,\text{k}\Omega \text{ to }
+     200\,\text{k}\Omega$** resistor between Isolated 3.3V and D1 (+) instead
+     of bridging the onboard $100\,\text{k}\Omega$ PU jumper:
+     $$V_{\text{sense}} = 3.3\,\text{V} \times
+     \frac{100\,\text{k}\Omega}{180\,\text{k}\Omega + 100\,\text{k}\Omega} =
+     1.18\,\text{V} \quad (\le V_{T-})$$ Alternatively, use **Option 2 (Analog
+     Input A1 via ADS1115)** for total software-configurable thresholds.
+
+#### 3.1.4 Corrosion & Electrolysis Prevention
+
+A common finding in DIY water probe implementations is that applying continuous
+high DC current across submerged metal electrodes causes electrolytic oxidation
+(eroding the positive pin). In this HALMET circuit:
+* The $100\,\text{k}\Omega$ bias resistor limits the maximum current through
+  the fluid to less than **$33\,\mu\text{A}$** ($0.033\,\text{mA}$).
+* In normal operation (clean diesel), the circuit is open and current is $<
+  0.33\,\mu\text{A}$.
+* This negligible current produces zero electrolytic erosion, preserving the
+  stainless steel probe indefinitely.
 
 ---
 
