@@ -14,6 +14,11 @@ electronics for the Seagram sailing yacht.
     sensing architecture for Rule bilge pump systems (pump, float switch, 3-way
     panel switch) with HALMET isolated digital inputs, cycle counts, runtime
     logging, and Signal K / N2K mapping.
+  - [`bluetooth-autopilot-remote`](docs/bluetooth-autopilot-remote.md):
+    Architecture, BLE HID central implementation, and NMEA 2000 / SeaTalk1
+    keystroke command injection (+1/-1, +10/-10, tacking, auto/standby) for
+    Raymarine Evolution and legacy SmartPilot autopilots using the HALMET
+    gateway.
   - [`esp32-n2k-wifi-gateway`](docs/esp32-n2k-wifi-gateway.md): DIY ESP32 NMEA
     2000 to Wi-Fi/Ethernet gateway specification (alternative to YDWG-02), with
     I2C environmental/motion and 1-Wire engine monitoring sensors across
