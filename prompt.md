@@ -1,8 +1,11 @@
 # Goal 
 
-I will have multiple I2C sensor connected to the single I2C port on the HAMLET
-boart (@parts/HALMET.md). How can I chain them together, do I need some sort of
-multiplexer to avoid bus message conflict.
+I would like to make a similar doc as the @docs/bilge-pump-monitoring.md  but
+this time I woud like to architect the integration of a bluetooth remote
+control with the HAMLET board (which will be connected to N2K) so that it can
+control the auto pilot. In particular I would like the remote control to
+provide the classic +1/-1 +10/-10 and tack  (equivalent to the +1 combined with
++10 or -1 combined with -10 command for raymarine control head).
 
 # Contribution guideline
 
