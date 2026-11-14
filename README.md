@@ -32,6 +32,10 @@ electronics for the Seagram sailing yacht.
     specification, CAN bus physical layer, ISO 11898-2 differential signaling,
     SAE J1939 framing, PGN datagrams, dynamic address arbitration, and LEN
     power budgeting.
+  - [`racor-water-in-fuel-sensor`](docs/racor-water-in-fuel-sensor.md):
+    Water-in-Fuel (WIF) probe integration for Parker Racor 230R fuel filters
+    using the RK21069 probe with HALMET isolated inputs, NMEA 2000 PGN 127489,
+    and Signal K.
   - [`seatalk1`](docs/seatalk1.md): SeaTalk1 protocol specification, electrical
     architecture, Wired-OR signaling, datagram structures, and N2K bridging.
 - `parts/`: Specifications and integration guides for hardware components and
